@@ -3,7 +3,8 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Form, UploadFile, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, EmailStr, validator, Field
+from pydantic import BaseModel, validator, Field
+from email_validator import validate_email, EmailNotValidError
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey, Float, DateTime, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 from passlib.context import CryptContext
@@ -462,7 +463,7 @@ if not _route_exists("/"):
 # =====================================
 class RegisterSchema(BaseModel):
     username: str
-    email: EmailStr
+    email: str             # use plain string and validate manually in endpoint
     password: str
     firstname: str
     lastname: str
@@ -672,15 +673,25 @@ EDU_GAME_LEVELS = {
 # =====================================
 @app.post("/signup")
 def signup(user: RegisterSchema, db: Session = Depends(get_db)):
-    if db.query(User).filter((User.username == user.username) | (User.email == user.email)).first():
+    # explicit email validation using email_validator (avoids pydantic EmailStr internals)
+    try:
+        validated = validate_email(user.email)
+        normalized_email = validated.email  # normalized (lowercased, etc.)
+    except EmailNotValidError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid email: {str(e)}")
+
+    # prevent duplicate username/email
+    if db.query(User).filter((User.username == user.username) | (User.email == normalized_email)).first():
         raise HTTPException(status_code=400, detail="Username or email already exists")
+
     try:
         birthday_date = datetime.datetime.strptime(user.birthday, "%Y-%m-%d").date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid birthday format. Use YYYY-MM-DD.")
+
     new_user = User(
         username=user.username,
-        email=user.email,
+        email=normalized_email,
         password=hash_password(user.password),
         firstname=user.firstname,
         lastname=user.lastname,
@@ -694,6 +705,7 @@ def signup(user: RegisterSchema, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
     return {"message": "User registered successfully!", "user_id": new_user.id}
+
 
 
 @app.post("/login")
