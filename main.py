@@ -19,6 +19,11 @@ import json
 from PIL import Image, ImageDraw, ImageFont
 import io
 import base64
+from fastapi.responses import FileResponse, HTMLResponse
+from pathlib import Path
+from fastapi import status
+from fastapi.responses import RedirectResponse
+import html as _html
 
 # =====================================
 # APP + STATIC SETUP
@@ -568,7 +573,101 @@ EDU_GAME_LEVELS = {
     3: ["crescent", "octagon", "diamond", "trapezoid", "parallelogram"],
 }
 
+# list all base filenames (without .html) that you want routes for
+HTML_PAGES = [
+    "view_routine", "update_routine", "subscription", "signup", "signin",
+    "shape", "routine", "match_shapes", "jigsaw", "index", "home", "flip",
+    "dashboard_premium", "dashboard_institution", "dashboard", "create_routine",
+    "cognitive", "behavior_checklist", "baseline_confirmation"
+    # add more file basenames here if you have others
+]
 
+def _serve_html_file(filename: str):
+    """
+    Prefer project-root filename first, then static/<filename>.
+    Returns FileResponse when file exists, otherwise helpful HTMLResponse(404).
+    """
+    root_candidate = Path(filename)
+    static_candidate = STATIC_DIR / filename
+
+    if root_candidate.exists():
+        try:
+            return FileResponse(path=str(root_candidate), media_type="text/html")
+        except Exception as e:
+            return HTMLResponse(f"<h3>Unable to serve {filename} from project root</h3><pre>{_html.escape(str(e))}</pre>", status_code=500)
+
+    if static_candidate.exists():
+        try:
+            return FileResponse(path=str(static_candidate), media_type="text/html")
+        except Exception as e:
+            return HTMLResponse(f"<h3>Unable to serve static/{filename}</h3><pre>{_html.escape(str(e))}</pre>", status_code=500)
+
+    # Not found
+    msg = f"""
+    <html><body style="font-family:Arial;padding:2rem">
+      <h2>{_html.escape(filename)} not found</h2>
+      <p>Place <code>{_html.escape(filename)}</code> in the project root or in the <code>static/</code> folder.</p>
+      <p>Available links you can try:</p>
+      <ul>
+        <li><a href="/{_html.escape(filename)}">/{_html.escape(filename)}</a> (redirects to the .html path)</li>
+        <li><a href="/static/{_html.escape(filename)}">/static/{_html.escape(filename)}</a></li>
+      </ul>
+    </body></html>
+    """
+    return HTMLResponse(msg, status_code=status.HTTP_404_NOT_FOUND)
+
+
+def _route_exists(path: str) -> bool:
+    # guard to avoid duplicate route registration
+    return any(getattr(r, "path", None) == path for r in app.routes)
+
+
+def _make_file_handler(fname: str):
+    def handler():
+        return _serve_html_file(fname)
+    return handler
+
+
+def _make_redirect_handler(target_path: str):
+    def handler():
+        return RedirectResponse(url=target_path)
+    return handler
+
+
+# register pages
+for base in HTML_PAGES:
+    fname = f"{base}.html"
+    html_path = f"/{fname}"
+    short_path = f"/{base}"  # redirect -> /<base>.html
+
+    # register GET /<base>.html
+    if not _route_exists(html_path):
+        app.add_api_route(
+            html_path,
+            endpoint=_make_file_handler(fname),
+            methods=["GET"],
+            response_class=HTMLResponse,
+            include_in_schema=False,
+        )
+
+    # register GET /<base> -> redirect to /<base>.html (skip if collides with existing route)
+    if not _route_exists(short_path):
+        app.add_api_route(
+            short_path,
+            endpoint=_make_redirect_handler(html_path),
+            methods=["GET"],
+            response_class=RedirectResponse,
+            include_in_schema=False,
+        )
+
+# special-case index: map root "/" to project-root index.html (if you prefer)
+# If you already have a serve_index() or root_index() handler, skip this block.
+if not _route_exists("/"):
+    @app.get("/", include_in_schema=False)
+    def serve_index_root():
+        # try root index.html first, then static/index.html
+        return _serve_html_file("index.html")
+    
 # =====================================
 # AUTH endpoints
 # =====================================
@@ -1108,7 +1207,7 @@ def serve_jigsaw_root():
         <li><a href="/jigsaw.html">/jigsaw.html</a> (serves file from project root)</li>
         <li><a href="/static/jigsaw.html">/static/jigsaw.html</a> (if you moved it to static/)</li>
       </ul>
-      <p>Or pass <code>?api_origin=http://127.0.0.1:8000</code> to the file when opening via <code>file://</code> in the browser.</p>
+      <p>Or pass <code>?api_origin=http://neurohue.onrender.com</code> to the file when opening via <code>file://</code> in the browser.</p>
     </body></html>
     """
     return HTMLResponse(msg, status_code=404)
