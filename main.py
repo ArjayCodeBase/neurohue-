@@ -863,6 +863,49 @@ def submit_behavior_checklist(data: BehaviorChecklistSubmission, db: Session = D
     return {"message": "Behavior checklist submitted successfully!"}
 
 
+
+from pathlib import Path
+from fastapi.responses import FileResponse, HTMLResponse
+import html
+
+# replace your existing root handler with this
+@app.get("/", include_in_schema=False)
+def serve_index():
+    """
+    Serve index.html from project root first, then static/index.html.
+    Uses FileResponse so linked assets (CSS/JS) are requested normally by the browser.
+    """
+    root_candidate = Path("index.html")
+    static_candidate = STATIC_DIR / "index.html"
+
+    # 1) Serve index.html from project root
+    if root_candidate.exists():
+        try:
+            return FileResponse(path=str(root_candidate), media_type="text/html")
+        except Exception as e:
+            return HTMLResponse(f"<html><body><h3>Unable to serve index.html from project root</h3><pre>{html.escape(str(e))}</pre></body></html>", status_code=500)
+
+    # 2) Fallback to static/index.html
+    if static_candidate.exists():
+        try:
+            return FileResponse(path=str(static_candidate), media_type="text/html")
+        except Exception as e:
+            return HTMLResponse(f"<html><body><h3>Unable to serve static/index.html</h3><pre>{html.escape(str(e))}</pre></body></html>", status_code=500)
+
+    # 3) Not found - helpful instructions
+    msg = """
+    <html><body style="font-family:Arial;padding:2rem">
+      <h2>index.html not found</h2>
+      <p>Place <code>index.html</code> in the project root (recommended) or in <code>static/index.html</code>.</p>
+      <p>After pushing, open <a href="/">/</a> or <a href="/static/index.html">/static/index.html</a>.</p>
+    </body></html>
+    """
+    return HTMLResponse(msg, status_code=404)
+
+
+
+
+
 # =====================================
 # DAILY ROUTINES endpoints
 # =====================================
