@@ -328,14 +328,14 @@
   <!-- Minimal jigsaw + header/sidebar interactivity script -->
   <script>
   // ---------- API origin detection (keeps original jigsaw logic) ----------
-  const DEFAULT_BACKEND = "http://neurohue.onrender.com";
+  const DEFAULT_BACKEND = "https://neurohue.onrender.com";
   function qp(name) {
     try { return new URLSearchParams(window.location.search).get(name); } catch(e){ return null; }
   }
   let API_ORIGIN = (function(){
     const fromQuery = qp('api_origin');
     if (fromQuery) return fromQuery.replace(/\/+$/, '');
-    if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) return window.location.origin;
+    if (window.location && (window.location.protocol === 'https:' || window.location.protocol === 'https:')) return window.location.origin;
     return DEFAULT_BACKEND;
   })();
   console.log("Using API_ORIGIN =", API_ORIGIN);
@@ -596,7 +596,7 @@
       const resp = await fetch(url, opts);
       if (!resp.ok) {
         const text = await resp.text().catch(() => '');
-        throw new Error(`HTTP ${resp.status} ${resp.statusText} ${text}`);
+        throw new Error(`https ${resp.status} ${resp.statusText} ${text}`);
       }
       return await resp.json();
     } catch (err) {
@@ -682,7 +682,7 @@
       });
       if (!resp.ok) {
         const text = await resp.text().catch(()=>null);
-        throw new Error(`HTTP ${resp.status} ${resp.statusText} ${text || ''}`);
+        throw new Error(`https ${resp.status} ${resp.statusText} ${text || ''}`);
       }
       const json = await resp.json();
       const { correct, total, percent, completed } = json;

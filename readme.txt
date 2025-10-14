@@ -10,3 +10,14 @@ python -m venv myenv
 myenv\Scripts\activate
 
 deactivate
+
+
+
+echo ".venv/" >> .gitignore
+echo ".env" >> .gitignore
+echo "*.db" >> .gitignore
+git add .
+git commit -m "tester"
+git push origin main
+
+git pull origin main --rebase
