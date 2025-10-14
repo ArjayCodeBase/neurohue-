@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Matching Shapes (Educational) | NeuroHue</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #0a7db5;
+      width: 100%;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .logo { font-weight: bold; font-size: 18px; margin-left: 20px; }
+    header .user { margin-right: 20px; font-weight: bold; }
+    h2 { margin-top: 30px; }
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+      width: 100%;
+      max-width: 920px;
+    }
+    .targets, .draggables {
+      display:flex;
+      justify-content:center;
+      gap: 24px;
+      margin: 20px;
+      flex-wrap: wrap;
+    }
+    .target {
+      width: 100px;
+      height: 100px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+    }
+    .target svg { width:88px; height:88px; pointer-events:none; }
+    .target .marker {
+      position:absolute; font-size:20px; font-weight:bold; top:6px; right:8px; pointer-events:none;
+    }
+    .piece {
+      width: 80px;
+      height: 80px;
+      cursor: grab;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+    }
+    .piece svg { width:68px; height:68px; }
+    #feedback { margin-top:14px; font-weight:bold; text-align:center; }
+    .timer { margin-top:8px; color:#333; font-size:0.95rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NeuroHue</div>
+    <div class="user">Guest</div>
+  </header>
+
+  <h2>Matching Shapes (Educational)</h2>
+
+  <div class="game-container">
+    <div id="targetsList" class="targets" aria-label="Shape targets"></div>
+    <div id="piecesList" class="draggables" aria-label="Draggable shapes"></div>
+    <div id="feedback" role="status" aria-live="polite"></div>
+    <div id="timerEl" class="timer" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // adjust to your backend address
+    const baseURL = "http://127.0.0.1:8000";
+
+    // helper: read from localStorage first, then sessionStorage
+    function getStoredItem(key) {
+      return localStorage.getItem(key) ?? sessionStorage.getItem(key);
+    }
+
+    // Get user id (checks a few common keys)
+    const learnerId = (function() {
+      const keys = ['user_id','userId','userid'];
+      for (const k of keys) {
+        const v = getStoredItem(k);
+        if (v !== null && v !== undefined) {
+          const n = Number(v);
+          return Number.isNaN(n) ? v : n;
+        }
+      }
+      return null;
+    })();
+
+    const authToken = (function(){ return getStoredItem('authToken') ?? getStoredItem('token'); })();
+
+    // renamed variables to avoid conflicts with other pages
+    let currentStage = 1;
+    let correctThisStage = 0;
+    let placedThisStage = 0;
+    let shapesThisStage = 0;
+    let totalCorrectAll = 0;
+    let totalShapesAll = 0;
+
+    // SVG templates (same shapes as the assessment version)
+    function svgOutlineTemplate(shape) {
+      switch (shape) {
+        case "circle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="40" r="30" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "square": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="60" height="60" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "triangle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,12 72,66 8,66" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "hexagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 65,25 65,55 40,70 15,55 15,25" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "pentagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 68,30 56,62 24,62 12,30" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "star": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 49,32 74,32 54,48 62,72 40,58 18,72 26,48 6,32 31,32" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "heart": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M40 60 L32 52 C16 36 26 20 40 30 C54 20 64 36 48 52 Z" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "crescent": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M52 40a20 20 0 1 1-28-18 14 14 0 1 0 28 18z" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "octagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="28,8 52,8 72,28 72,52 52,72 28,72 8,52 8,28" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "diamond": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 64,40 40,72 16,40" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "trapezoid": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="16,64 64,64 54,20 26,20" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "parallelogram": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="20,16 60,16 48,64 8,64" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        default: return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="60" height="60" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+      }
+    }
+
+    function svgFilledTemplate(shape) {
+      switch (shape) {
+        case "circle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="40" r="30" fill="#e53935" /></svg>`;
+        case "square": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="50" height="50" fill="#9ad3f0"/></svg>`;
+        case "triangle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,12 72,66 8,66" fill="#ffeb3b"/></svg>`;
+        case "hexagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 65,25 65,55 40,70 15,55 15,25" fill="#8fd3a7"/></svg>`;
+        case "pentagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 68,30 56,62 24,62 12,30" fill="#f6c667"/></svg>`;
+        case "star": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 49,32 74,32 54,48 62,72 40,58 18,72 26,48 6,32 31,32" fill="#ffd54f"/></svg>`;
+        case "heart": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M40 60 L32 52 C16 36 26 20 40 30 C54 20 64 36 48 52 Z" fill="#ec407a"/></svg>`;
+        case "crescent": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M52 40a20 20 0 1 1-28-18 14 14 0 1 0 28 18z" fill="#90caf9"/></svg>`;
+        case "octagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="28,8 52,8 72,28 72,52 52,72 28,72 8,52 8,28" fill="#b39ddb"/></svg>`;
+        case "diamond": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 64,40 40,72 16,40" fill="#80cbc4"/></svg>`;
+        case "trapezoid": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="16,64 64,64 54,20 26,20" fill="#ffab91"/></svg>`;
+        case "parallelogram": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="20,16 60,16 48,64 8,64" fill="#c5e1a5"/></svg>`;
+        default: return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="50" height="50" fill="#9ad3f0"/></svg>`;
+      }
+    }
+
+    function makeTargetElement(shape) {
+      const wrap = document.createElement("div");
+      wrap.className = "target";
+      wrap.dataset.shape = shape;
+      wrap.dataset.occupied = "false";
+      wrap.innerHTML = svgOutlineTemplate(shape) + `<div class="marker" aria-hidden="true"></div>`;
+      wrap.addEventListener("dragover", (e) => e.preventDefault());
+      wrap.addEventListener("drop", onDropToTarget);
+      return wrap;
+    }
+
+    function makePieceElement(shape, idx) {
+      const el = document.createElement("div");
+      el.className = "piece";
+      el.draggable = true;
+      el.dataset.shape = shape;
+      el.dataset.index = String(idx);
+      el.id = `piece-${shape}-${idx}`;
+      el.innerHTML = svgFilledTemplate(shape);
+      el.addEventListener("dragstart", (ev) => {
+        ev.dataTransfer.setData("text/plain", JSON.stringify({ shape: ev.currentTarget.dataset.shape, id: ev.currentTarget.id }));
+      });
+      return el;
+    }
+
+    async function loadStage(stage) {
+      correctThisStage = 0;
+      placedThisStage = 0;
+      shapesThisStage = 0;
+      document.getElementById("feedback").textContent = "";
+      document.getElementById("timerEl").textContent = "";
+
+      try {
+        const headers = {};
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const resp = await fetch(`${baseURL}/shape-game/level/${stage}`, { headers });
+        if (!resp.ok) {
+          finalizeAndGoHome();
+          return;
+        }
+        const data = await resp.json();
+        renderStage(data);
+      } catch (err) {
+        document.getElementById("feedback").textContent = "Network error while loading stage.";
+        console.error(err);
+      }
+    }
+
+    function renderStage(data) {
+      const targetsRoot = document.getElementById("targetsList");
+      const piecesRoot = document.getElementById("piecesList");
+      targetsRoot.innerHTML = "";
+      piecesRoot.innerHTML = "";
+
+      shapesThisStage = data.shapes.length;
+      data.outlines.forEach(shapeType => targetsRoot.appendChild(makeTargetElement(shapeType)));
+      data.shapes.forEach((shapeType, idx) => piecesRoot.appendChild(makePieceElement(shapeType, idx)));
+
+      document.getElementById("feedback").textContent = `Playing stage ${data.level} — match ${shapesThisStage} shapes.`;
+    }
+
+    function onDropToTarget(e) {
+      e.preventDefault();
+      const targetEl = e.currentTarget;
+      if (targetEl.dataset.occupied === "true") return;
+
+      let payload;
+      try { payload = JSON.parse(e.dataTransfer.getData("text/plain")); }
+      catch { payload = { shape: e.dataTransfer.getData("shape"), id: null }; }
+
+      const draggedShape = payload.shape;
+      const draggedId = payload.id;
+
+      targetEl.dataset.occupied = "true";
+      placedThisStage++;
+
+      const expected = targetEl.dataset.shape;
+      const marker = targetEl.querySelector(".marker");
+
+      if (draggedShape === expected) {
+        correctThisStage++;
+        marker.textContent = "✓";
+        marker.style.color = "green";
+      } else {
+        marker.textContent = "✗";
+        marker.style.color = "red";
+      }
+
+      if (draggedId) {
+        const draggedEl = document.getElementById(draggedId);
+        if (draggedEl && draggedEl.parentElement) draggedEl.parentElement.removeChild(draggedEl);
+      } else {
+        const candidate = document.querySelector(`#piecesList .piece[data-shape="${draggedShape}"]`);
+        if (candidate && candidate.parentElement) candidate.parentElement.removeChild(candidate);
+      }
+
+      if (placedThisStage >= shapesThisStage) {
+        setTimeout(submitStageResults, 700);
+      }
+    }
+
+    async function submitStageResults() {
+      totalCorrectAll += correctThisStage;
+      totalShapesAll += shapesThisStage;
+
+      const payload = { user_id: learnerId, level: currentStage, matched_shapes: correctThisStage, total_shapes: shapesThisStage };
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const resp = await fetch(`${baseURL}/shape-game/submit`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          document.getElementById("feedback").textContent = `Server error: ${resp.status} — ${text}`;
+          return;
+        }
+
+        const result = await resp.json();
+        document.getElementById("feedback").textContent = `Stage ${currentStage} result: ${result.message} Score: ${result.score}%`;
+
+        const nextAvailable = (typeof result.next_stage !== "undefined" && result.next_stage !== null) ? result.next_stage : null;
+
+        let wait = 5;
+        const timerEl = document.getElementById("timerEl");
+        if (!nextAvailable) {
+          timerEl.textContent = `Returning to Home in ${wait} s...`;
+          const t = setInterval(() => {
+            wait--;
+            if (wait > 0) {
+              timerEl.textContent = `Returning to Home in ${wait} s...`;
+            } else {
+              clearInterval(t);
+              finalizeAndGoHome();
+            }
+          }, 1000);
+          return;
+        }
+
+        // next stage exists
+        timerEl.textContent = `Next stage will start in ${wait} s...`;
+        const t2 = setInterval(() => {
+          wait--;
+          if (wait > 0) {
+            timerEl.textContent = `Next stage will start in ${wait} s...`;
+          } else {
+            clearInterval(t2);
+            timerEl.textContent = "";
+            currentStage = nextAvailable;
+            loadStage(currentStage);
+          }
+        }, 1000);
+
+      } catch (err) {
+        document.getElementById("feedback").textContent = "Network error while submitting results.";
+        console.error(err);
+      }
+    }
+
+    function finalizeAndGoHome() {
+      const fb = document.getElementById("feedback");
+      if (totalShapesAll === 0) {
+        fb.textContent = "No stages were played. Returning to Home...";
+      } else {
+        const pct = Math.round((totalCorrectAll / totalShapesAll) * 100);
+        fb.innerHTML = `All stages complete.<br/>Total matched: ${totalCorrectAll} / ${totalShapesAll} — <strong>Total score: ${pct}%</strong><br/>Returning to Home...`;
+      }
+
+      try {
+        localStorage.setItem("eduShapesCompleted", "true");
+        localStorage.removeItem("eduShapesInProgress");
+      } catch (e) { console.warn("localStorage unavailable:", e); }
+
+      setTimeout(() => { window.location.href = "cognitive.html"; }, 1500);
+    }
+
+    function ensureLearnerLoggedIn() {
+      if (!learnerId) {
+        try { localStorage.setItem('eduShapesInProgress', 'true'); } catch(e) {}
+        const fb = document.getElementById('feedback');
+        if (fb) fb.textContent = 'You must be logged in to play. Redirecting to signin...';
+        setTimeout(() => { window.location.href = 'signin.html'; }, 900);
+        return false;
+      }
+      return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const username = getStoredItem('username') || getStoredItem('user') ? (function(){
+        const uRaw = getStoredItem('user');
+        if (uRaw) {
+          try { const obj = JSON.parse(uRaw); return obj.username ?? obj.name ?? obj.email ?? null; }
+          catch(e) { return null; }
+        }
+        return null;
+      })() : null;
+
+      const userEl = document.querySelector('.user');
+      if (userEl) userEl.textContent = username || getStoredItem('username') || 'Guest';
+
+      if (!ensureLearnerLoggedIn()) return;
+      loadStage(currentStage);
+    });
+
+  </script>
+</body>
+</html>

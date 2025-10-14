@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Choose Subscription Plan | NeuroHue</title>
+  <style>
+    :root{ --teal:#268ea6; --dark:#093c44; --muted:#666; --card-bg:#fff; }
+    *{box-sizing:border-box}
+    body{ margin:0; font-family:Arial,Helvetica,sans-serif; background:#f6f8fa; color:#222; min-height:100vh; display:flex; flex-direction:column; }
+
+    .navbar{ background:var(--teal); color:#fff; display:flex; justify-content:space-between; align-items:center; padding:12px 20px; }
+    .brand{ display:flex; align-items:center; gap:12px; font-weight:700 }
+    .logo-circle{ width:34px; height:34px; border-radius:50%; background:#0a7db5; display:inline-flex; align-items:center; justify-content:center }
+    .user-info{ display:flex; align-items:center; gap:10px }
+    .profile-circle{ width:34px; height:34px; border-radius:50%; background:#fff; color:#000; display:flex; align-items:center; justify-content:center; font-weight:700 }
+
+    main{ flex:1; padding:36px 18px; display:flex; flex-direction:column; align-items:center; }
+    h1{ margin:0 0 26px; text-align:center; font-size:22px; }
+    .plans{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; width:100%; max-width:1100px; margin-bottom:18px; }
+    @media (max-width:880px){ .plans{ grid-template-columns:1fr; padding:0 12px } main{ padding:20px 12px } }
+
+    .plan{ background:var(--card-bg); border-radius:10px; padding:22px; border:1px solid #e6e6e6; box-shadow:0 4px 18px rgba(20,30,40,0.04); display:flex; flex-direction:column; align-items:center; min-height:320px }
+    .stars{ margin-bottom:8px } .plan h3{ margin:8px 0 10px 0; font-size:18px; text-align:center }
+    .features{ text-align:left; margin-top:8px; flex:1; width:100%; padding-left:6px }
+    .features li{ margin:8px 0; line-height:1.3; font-size:14px; color:#333; list-style:none; position:relative; padding-left:14px }
+    .features li::before{ content:"•"; position:absolute; left:0; color:#0a7db5; font-weight:bold }
+    .price-badge{ margin-top:14px; background:#e6f7fb; color:#0a7db5; padding:8px 12px; border-radius:999px; font-weight:700 }
+    .subscribe-btn{ margin-top:14px; background:var(--dark); color:#fff; border:none; padding:10px 16px; border-radius:8px; cursor:pointer; font-weight:700 }
+    .note{ color:var(--muted); margin-top:8px; font-size:14px; text-align:center }
+    .status{ margin-top:14px; font-size:14px; color:#333; text-align:center; min-height:18px }
+
+    /* Modal layout and steps */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.45); display:none; align-items:center; justify-content:center; z-index:1200 }
+    .modal{ background:white; border-radius:10px; padding:18px; width:420px; max-width:92%; box-shadow:0 10px 40px rgba(0,0,0,0.25) }
+    .modal h3{ margin:0 0 12px 0; font-size:18px }
+    .payment-options{ display:flex; flex-direction:column; gap:8px; margin-bottom:12px }
+    .payment-option{ display:flex; align-items:center; gap:10px; padding:8px; border:1px solid #eee; border-radius:8px; cursor:pointer }
+    .modal .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:8px }
+    .btn-cancel{ background:#e6e6e6; color:#222; border:none; padding:8px 12px; border-radius:8px; cursor:pointer }
+    .btn-primary{ background:var(--dark); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer }
+    .hidden{ display:none }
+    .details-row{ display:flex; justify-content:space-between; margin:8px 0; padding:8px 0; border-bottom:1px dashed #eee }
+    .confirm-success{ text-align:center; padding:12px 0; color:green; font-weight:700 }
+  </style>
+</head>
+<body>
+  <header class="navbar">
+    <div class="brand"><div class="logo-circle" aria-hidden="true">NH</div><div>NeuroHue</div></div>
+    <div class="user-info"><div class="profile-circle" id="profileInitial">J</div><div class="username" id="usernameDisplay">John</div></div>
+  </header>
+
+  <main>
+    <h1>Choose Subscription Plan</h1>
+
+    <div class="plans" role="list" id="plansRoot">
+      <!-- Basic -->
+      <div class="plan" role="listitem" aria-labelledby="basic-title">
+        <div class="stars" aria-hidden="true">⭐</div>
+        <h3 id="basic-title">Basic Plan</h3>
+        <ul class="features" aria-label="Basic plan features">
+          <li>Multiple languages (Bisaya, English, Tagalog)</li>
+          <li>Education games and activities</li>
+          <li>Parent/teacher guidance</li>
+          <li>Offline accessibility</li>
+        </ul>
+        <div class="price-badge" data-price="450">₱450 / month</div>
+        <button class="subscribe-btn" data-plan="1" id="btn-basic">Subscribe</button>
+      </div>
+
+      <!-- Premium -->
+      <div class="plan" role="listitem" aria-labelledby="premium-title">
+        <div class="stars" aria-hidden="true">⭐ ⭐</div>
+        <h3 id="premium-title">Premium Plan</h3>
+        <ul class="features" aria-label="Premium plan features">
+          <li>Education games and activities</li>
+          <li>Special progress tracking</li>
+          <li>Therapist scheduling</li>
+        </ul>
+        <div class="price-badge" data-price="1050">₱1,050 / month</div>
+        <button class="subscribe-btn" data-plan="2" id="btn-premium">Subscribe</button>
+      </div>
+
+      <!-- Institutional -->
+      <div class="plan" role="listitem" aria-labelledby="institutional-title">
+        <div class="stars" aria-hidden="true">⭐ ⭐ ⭐</div>
+        <h3 id="institutional-title">Institutional Plan</h3>
+        <ul class="features" aria-label="Institutional plan features">
+          <li>Class routine</li>
+          <li>Education games and activities</li>
+          <li>Parent/teacher guidance</li>
+          <li>Offline accessibility</li>
+        </ul>
+        <div class="price-badge" data-price="3500">₱3,500 / month</div>
+        <button class="subscribe-btn" data-plan="3" id="btn-institutional">Subscribe</button>
+      </div>
+    </div>
+
+    <div class="note">Select a plan to proceed to payment and activate your subscription.</div>
+    <div class="status" id="statusMessage" aria-live="polite"></div>
+  </main>
+
+  <!-- Modal: step1 = payment method, step2 = payment details, step3 = confirmation -->
+  <div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+
+      <!-- STEP 1: Choose payment method -->
+      <div id="modal-step-1">
+        <h3 id="modalTitle">Choose Payment Method</h3>
+        <div class="payment-options" id="paymentOptions">
+          <label class="payment-option"><input type="radio" name="paymentMethod" value="gcash" /> <div>GCash</div></label>
+          <label class="payment-option"><input type="radio" name="paymentMethod" value="paymaya" /> <div>PayMaya</div></label>
+          <label class="payment-option"><input type="radio" name="paymentMethod" value="credit_debit" checked /> <div>Credit / Debit Card</div></label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="modalCancel">Cancel</button>
+          <button class="btn-primary" id="modalNextToDetails">Confirm & Pay</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Payment details + confirm -->
+      <div id="modal-step-2" class="hidden">
+        <h3>Payment Details</h3>
+        <div class="details-row"><div>Plan</div><div id="detailPlan">—</div></div>
+        <div class="details-row"><div>Price</div><div id="detailPrice">—</div></div>
+        <div class="details-row"><div>Payment method</div><div id="detailMethod">—</div></div>
+        <div style="margin-top:12px; color:#666; font-size:13px;">Confirm payment to create your subscription and open payment page.</div>
+        <div class="modal-actions">
+          <button class="btn-cancel" id="detailsBack">Back</button>
+          <button class="btn-primary" id="detailsConfirm">Confirm Payment</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Confirmation -->
+      <div id="modal-step-3" class="hidden">
+        <h3>Payment Confirmation</h3>
+        <div id="confirmationStatus" class="confirm-success">Processing...</div>
+        <div id="confirmationInfo" style="margin-top:12px; text-align:center;"></div>
+        <div class="modal-actions" style="margin-top:18px">
+          <button class="btn-cancel" id="goDashboard">Go to Dashboard</button>
+          <button class="btn-primary" id="openPaymentPage">Open Payment Page</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const baseURL = "http://127.0.0.1:8000";
+    const statusEl = document.getElementById('statusMessage');
+    const modalBackdrop = document.getElementById('modalBackdrop');
+
+    // modal step nodes
+    const step1 = document.getElementById('modal-step-1');
+    const step2 = document.getElementById('modal-step-2');
+    const step3 = document.getElementById('modal-step-3');
+
+    // detail nodes
+    const detailPlan = document.getElementById('detailPlan');
+    const detailPrice = document.getElementById('detailPrice');
+    const detailMethod = document.getElementById('detailMethod');
+    const confirmationStatus = document.getElementById('confirmationStatus');
+    const confirmationInfo = document.getElementById('confirmationInfo');
+    const openPaymentPageBtn = document.getElementById('openPaymentPage');
+    const goDashboardBtn = document.getElementById('goDashboard');
+
+    const modalCancel = document.getElementById('modalCancel');
+    const modalNextToDetails = document.getElementById('modalNextToDetails');
+    const detailsBack = document.getElementById('detailsBack');
+    const detailsConfirm = document.getElementById('detailsConfirm');
+
+    let selectedPlanId = null;
+    let confirmedPlanId = null; // <-- NEW: stored after successful subscribe call
+    let selectedMethod = 'credit_debit';
+    let currentUser = null;
+    let lastPaymentUrl = null;
+
+    // Plan metadata (for details display)
+    const PLANS = {
+      1: { name: 'Basic Plan', price: 450 },
+      2: { name: 'Premium Plan', price: 1050 },
+      3: { name: 'Institutional Plan', price: 3500 }
+    };
+
+    function getStoredUser() {
+      const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.user && parsed.user.id) return { id: parsed.user.id, username: parsed.user.username || '' };
+        if (parsed.id) return { id: parsed.id, username: parsed.username || '' };
+        if (parsed.user_id) return { id: parsed.user_id, username: parsed.username || '' };
+        return null;
+      } catch(e) { return null; }
+    }
+
+    // Initialize header with stored user
+    const usr = getStoredUser();
+    if (!usr) {
+      window.location.href = 'signin.html';
+    } else {
+      currentUser = usr;
+      document.getElementById('usernameDisplay').textContent = usr.username || 'User';
+      document.getElementById('profileInitial').textContent = (usr.username && usr.username[0]) ? usr.username[0].toUpperCase() : 'U';
+    }
+
+    // Subscribe button opens modal step1
+    document.querySelectorAll('.subscribe-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        selectedPlanId = parseInt(e.currentTarget.dataset.plan, 10);
+        if (!selectedPlanId || !PLANS[selectedPlanId]) {
+          statusEl.style.color = 'crimson';
+          statusEl.textContent = 'Invalid plan selected.';
+          return;
+        }
+        showModalStep(1);
+      });
+    });
+
+    function showModalStep(step) {
+      modalBackdrop.style.display = 'flex';
+      modalBackdrop.setAttribute('aria-hidden', 'false');
+      step1.classList.add('hidden'); step2.classList.add('hidden'); step3.classList.add('hidden');
+      if (step === 1) { step1.classList.remove('hidden'); modalNextToDetails.focus(); }
+      if (step === 2) { step2.classList.remove('hidden'); detailsConfirm.focus(); }
+      if (step === 3) { step3.classList.remove('hidden'); openPaymentPageBtn.focus(); }
+    }
+
+    function closeModal() {
+      modalBackdrop.style.display = 'none';
+      modalBackdrop.setAttribute('aria-hidden','true');
+      selectedPlanId = null;
+      // reset to step 1 for next open
+      step1.classList.remove('hidden'); step2.classList.add('hidden'); step3.classList.add('hidden');
+    }
+
+    modalCancel.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeModal(); });
+
+    // Step1 -> Step2 (Confirm & Pay clicked)
+    modalNextToDetails.addEventListener('click', () => {
+      // read selected method radio
+      const methodRadio = document.querySelector('input[name="paymentMethod"]:checked');
+      selectedMethod = methodRadio ? methodRadio.value : 'credit_debit';
+      // populate details
+      const plan = PLANS[selectedPlanId];
+      detailPlan.textContent = plan.name;
+      detailPrice.textContent = `₱${plan.price.toLocaleString()} / month`;
+      detailMethod.textContent = selectedMethod === 'credit_debit' ? 'Credit / Debit Card' : (selectedMethod === 'gcash' ? 'GCash' : 'PayMaya');
+      showModalStep(2);
+    });
+
+    // Step2: Back button
+    detailsBack.addEventListener('click', () => showModalStep(1));
+
+    // Step2: Confirm Payment -> call backend subscribe
+    detailsConfirm.addEventListener('click', async () => {
+      if (!currentUser || !currentUser.id) {
+        confirmationStatus.style.color = 'crimson';
+        confirmationStatus.textContent = 'User not logged in.';
+        return;
+      }
+      detailsConfirm.disabled = true;
+      detailsConfirm.textContent = 'Processing...';
+      statusEl.textContent = '';
+      try {
+        const payload = { user_id: currentUser.id, plan_id: selectedPlanId, payment_method: selectedMethod };
+        const resp = await fetch(`${baseURL}/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          detailsConfirm.disabled = false;
+          detailsConfirm.textContent = 'Confirm Payment';
+          // show error inside modal step 3
+          confirmationStatus.style.color = 'crimson';
+          confirmationStatus.textContent = 'Failed to create subscription';
+          confirmationInfo.innerHTML = `<div style="color:#b33">${resp.status} ${txt || ''}</div>`;
+          showModalStep(3);
+          return;
+        }
+
+        const json = await resp.json();
+        lastPaymentUrl = json.payment_url || null;
+
+        // Mark plan as confirmed (so go-to-dashboard knows which dashboard to open)
+        confirmedPlanId = selectedPlanId;
+
+        // success — show confirmation step
+        confirmationStatus.style.color = 'green';
+        confirmationStatus.textContent = 'Subscription created';
+        confirmationInfo.innerHTML = `
+          <div>Plan: <strong>${PLANS[selectedPlanId].name}</strong></div>
+          <div>Amount: <strong>₱${PLANS[selectedPlanId].price.toLocaleString()}</strong></div>
+          <div>Method: <strong>${selectedMethod === 'credit_debit' ? 'Credit/Debit' : (selectedMethod==='gcash'?'GCash':'PayMaya')}</strong></div>
+          <div style="margin-top:8px; font-size:13px; color:#444;">You may proceed to the payment page if required, or go to your dashboard.</div>
+        `;
+
+        // show step 3 and re-enable confirm button state
+        showModalStep(3);
+        detailsConfirm.disabled = false;
+        detailsConfirm.textContent = 'Confirm Payment';
+      } catch (err) {
+        console.error(err);
+        detailsConfirm.disabled = false;
+        detailsConfirm.textContent = 'Confirm Payment';
+        confirmationStatus.style.color = 'crimson';
+        confirmationStatus.textContent = 'Network error';
+        confirmationInfo.innerHTML = `<div style="color:#b33">Unable to reach server. Please try again.</div>`;
+        showModalStep(3);
+      } finally {
+        // nothing else required here
+      }
+    });
+
+    // Step3 actions
+goDashboardBtn.addEventListener('click', () => {
+  // Prefer the confirmed plan returned by the server; fall back to selectedPlanId.
+  const planToUse = (typeof confirmedPlanId === 'number' && !isNaN(confirmedPlanId))
+    ? confirmedPlanId
+    : selectedPlanId;
+
+  // Redirect based on explicit plan checks
+  if (planToUse === 1) {
+    // Basic
+    window.location.href = 'dashboard.html';
+  } else if (planToUse === 2) {
+    // Premium
+    window.location.href = 'dashboard_premium.html';
+  } else if (planToUse === 3) {
+    // Institutional
+    window.location.href = 'dashboard_institution.html';
+  } else {
+    // fallback
+    window.location.href = 'dashboard.html';
+  }
+
+  // optionally close modal UI if you still want:
+  // closeModal();
+});
+
+    openPaymentPageBtn.addEventListener('click', () => {
+      if (!lastPaymentUrl) {
+        confirmationInfo.innerHTML = `<div style="color:#b33">No payment page returned by server.</div>`;
+        return;
+      }
+      // open payment url in new tab (or redirect if you prefer)
+      window.open(lastPaymentUrl, '_blank');
+    });
+
+    // Accessibility: ESC closes
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalBackdrop.style.display === 'flex') closeModal(); });
+
+  </script>
+</body>
+</html>

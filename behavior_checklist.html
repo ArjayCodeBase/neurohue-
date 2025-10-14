@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Behavior Checklists | NeuroHue</title>
+  <style>
+    :root {
+      --teal: #268ea6;
+      --dark: #093c44;
+      --muted: #888;
+      --card-bg: #fff;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .navbar {
+      background: var(--teal);
+      width: 100%;
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .navbar-left { display:flex; align-items:center; gap:12px; font-weight:700; }
+    .logo-circle { width:34px; height:34px; border-radius:50%; background:#0a7db5; display:inline-block; }
+    .username { font-weight:700; margin-left:8px; }
+    main { width:100%; max-width:920px; padding:28px; box-sizing:border-box; }
+    h1 { text-align:center; margin:8px 0 18px 0; font-size:26px; }
+    .card {
+      background: var(--card-bg);
+      border-radius:6px;
+      padding:22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      border: 1px solid #e6e9ec;
+    }
+    .instructions {
+      background: #e9ecef;
+      padding:14px;
+      color:#333;
+      border-radius:4px;
+      margin-bottom:18px;
+      line-height:1.4;
+    }
+    .section-title {
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    .questions { margin-top:8px; text-align:left; }
+    .question {
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      margin-bottom:8px;
+      font-size:15px;
+    }
+    .question input[type="checkbox"] { width:18px; height:18px; margin-top:3px; }
+    .controls {
+      display:flex;
+      justify-content:center;
+      gap:16px;
+      margin-top:22px;
+    }
+    button {
+      padding:10px 22px;
+      border-radius:8px;
+      border: none;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn-back { background:#cfcfcf; color:#222; }
+    .btn-next { background:var(--dark); color:white; }
+    .status-msg { margin-top:12px; text-align:center; color:var(--muted); min-height:20px; }
+    .small-note { font-size:13px; color:#666; margin-top:8px; text-align:center; }
+    /* responsive */
+    @media (max-width:600px) {
+      main { padding:18px; }
+      .card { padding:16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-left">
+      <div class="logo-circle" aria-hidden="true"></div>
+      <div style="font-size:18px">NeuroHue</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div id="profile-icon" style="width:34px;height:34px;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-weight:700">J</div>
+      <div id="nav-username" class="username">John</div>
+    </div>
+  </div>
+
+  <main>
+    <h1>Behavior Checklists</h1>
+
+    <div class="card" id="card">
+      <div class="instructions" id="instructions">
+        From the list of behaviors under each category, pick two (2) that are most likely to describe you. Mark only 2 behaviors out of every 5 in each section that you feel are most true to you.
+      </div>
+
+      <div id="section-area">
+        <!-- dynamic section content goes here -->
+      </div>
+
+      <div class="controls">
+        <button id="btnBack" class="btn-back" disabled>Back</button>
+        <button id="btnNext" class="btn-next">Next</button>
+      </div>
+
+      <div class="status-msg" id="statusMsg"></div>
+      <div class="small-note">You may change selections before submitting the section. Each section requires exactly two selections.</div>
+    </div>
+  </main>
+
+  <script>
+    const baseURL = "http://127.0.0.1:8000"; // change if needed
+
+    /* ---------- Storage helpers ---------- */
+    function getStoredItem(key) {
+      // prefer localStorage (persistent) if available, else sessionStorage
+      const v = localStorage.getItem(key);
+      if (v !== null) return v;
+      return sessionStorage.getItem(key);
+    }
+
+    function setStoredItem(key, value, persist = true) {
+      if (persist) {
+        localStorage.setItem(key, value);
+        sessionStorage.removeItem(key);
+      } else {
+        sessionStorage.setItem(key, value);
+        localStorage.removeItem(key);
+      }
+    }
+
+    function removeStoredItem(key) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+
+    // parse stored user object or fallback keys
+    function parseStoredUser() {
+      // try full 'user' object
+      const rawUser = getStoredItem('user');
+      if (rawUser) {
+        try {
+          const obj = JSON.parse(rawUser);
+          if (obj && typeof obj === 'object') {
+            // common forms: { user: { id, username } } or { id, username } or { user_id }
+            if (obj.user && typeof obj.user === 'object') {
+              const u = obj.user;
+              return {
+                id: u.id ?? u.user_id ?? obj.id ?? obj.user_id ?? null,
+                username: u.username ?? u.name ?? u.email ?? obj.username ?? null,
+                persist: !!localStorage.getItem('user') // whether the object is in localStorage
+              };
+            }
+            return {
+              id: obj.id ?? obj.user_id ?? obj.userId ?? null,
+              username: obj.username ?? obj.name ?? obj.email ?? null,
+              persist: !!localStorage.getItem('user')
+            };
+          }
+        } catch(e) {
+          // not JSON; ignore and fall through
+        }
+      }
+
+      // fallback to individual keys
+      const id = getStoredItem('user_id') ?? getStoredItem('userId') ?? getStoredItem('userid') ?? null;
+      const username = getStoredItem('username') ?? null;
+      return { id: id !== null ? (isNaN(Number(id)) ? id : Number(id)) : null, username, persist: !!localStorage.getItem('user_id') || !!localStorage.getItem('userId') || !!localStorage.getItem('userid') };
+    }
+
+    function getAuthToken() {
+      return getStoredItem('authToken') ?? getStoredItem('token') ?? null;
+    }
+
+    /* ---------- Init user from storage and auth check ---------- */
+    const parsedUser = parseStoredUser();
+    if (!parsedUser || !parsedUser.id) {
+      // not logged in -> go to signin
+      window.location.href = 'signin.html';
+    }
+    const userId = parsedUser.id;
+    const username = parsedUser.username ?? 'User';
+    const authToken = getAuthToken();
+
+    // Set navbar display
+    const navNameEl = document.getElementById('nav-username');
+    const profileIconEl = document.getElementById('profile-icon');
+    if (navNameEl) navNameEl.textContent = username;
+    if (profileIconEl) profileIconEl.textContent = username && username.length ? username.charAt(0).toUpperCase() : 'U';
+
+    /* ---------- Behavior checklist logic (unchanged UI flow) ---------- */
+
+    let checklistData = null; // { scale, checklist }
+    let sections = []; // array of section titles
+    let currentIndex = 0;
+    const selectedBySection = {}; // sectionTitle -> Set(questionText)
+
+    const sectionArea = document.getElementById("section-area");
+    const btnBack = document.getElementById("btnBack");
+    const btnNext = document.getElementById("btnNext");
+    const statusMsg = document.getElementById("statusMsg");
+    const instructionsEl = document.getElementById("instructions");
+
+    // load questions from backend (include Authorization header when token present)
+    async function loadChecklist() {
+      showStatus("Loading checklist...", false);
+      try {
+        const headers = {};
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const res = await fetch(`${baseURL}/behavior-checklist/questions`, { headers });
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            // unauthorized -> clear client state and redirect to signin
+            clearClientAuth();
+            window.location.href = 'signin.html';
+            return;
+          }
+          showStatus("Failed to load checklist (server error).", true);
+          return;
+        }
+        const data = await res.json();
+        checklistData = data;
+        sections = Object.keys(data.checklist || {});
+        // initialize selection sets
+        sections.forEach(s => selectedBySection[s] = new Set());
+        if (sections.length === 0) {
+          showStatus("No checklist sections found.", true);
+          return;
+        }
+        renderSection(currentIndex);
+        showStatus("", false);
+      } catch (err) {
+        console.error(err);
+        showStatus("Network error while loading checklist.", true);
+      }
+    }
+
+    function renderSection(index) {
+      sectionArea.innerHTML = ""; // clear
+      const secTitle = sections[index];
+      const questions = checklistData.checklist[secTitle] || [];
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "section-title";
+      titleEl.textContent = `${index + 1}. ${secTitle}`;
+
+      const qRoot = document.createElement("div");
+      qRoot.className = "questions";
+
+      questions.forEach((qText, i) => {
+        const qDiv = document.createElement("div");
+        qDiv.className = "question";
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.id = `q-${index}-${i}`;
+        cb.dataset.question = qText;
+        cb.dataset.section = secTitle;
+        // restore previous selection if any
+        if (selectedBySection[secTitle] && selectedBySection[secTitle].has(qText)) cb.checked = true;
+
+        cb.addEventListener("change", onCheckboxChange);
+
+        const label = document.createElement("label");
+        label.htmlFor = cb.id;
+        label.textContent = qText;
+
+        qDiv.appendChild(cb);
+        qDiv.appendChild(label);
+        qRoot.appendChild(qDiv);
+      });
+
+      sectionArea.appendChild(titleEl);
+      sectionArea.appendChild(qRoot);
+
+      // update buttons
+      btnBack.disabled = index === 0;
+      btnNext.textContent = index < sections.length - 1 ? "Next" : "Submit";
+      updateSelectionStatus();
+    }
+
+    function onCheckboxChange(e) {
+      const cb = e.target;
+      const section = cb.dataset.section;
+      const questionText = cb.dataset.question;
+      const set = selectedBySection[section];
+      if (cb.checked) {
+        // enforce max 2
+        if (set.size >= 2) {
+          // revert and show message
+          cb.checked = false;
+          showStatus("You can only select two behaviors per section.", true);
+          setTimeout(() => showStatus("", false), 2000);
+          return;
+        }
+        set.add(questionText);
+      } else {
+        set.delete(questionText);
+      }
+      updateSelectionStatus();
+    }
+
+    function updateSelectionStatus() {
+      const sec = sections[currentIndex];
+      const count = selectedBySection[sec].size;
+      showStatus(`Selected ${count} of 2 items in this section.`, false);
+    }
+
+    function showStatus(msg, isError = false) {
+      statusMsg.textContent = msg;
+      statusMsg.style.color = isError ? "crimson" : "#666";
+    }
+
+    btnBack.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        renderSection(currentIndex);
+      }
+    });
+
+    btnNext.addEventListener("click", async () => {
+      const sec = sections[currentIndex];
+      const count = selectedBySection[sec].size;
+      if (count !== 2) {
+        showStatus("Please select exactly 2 behaviors in this section before continuing.", true);
+        return;
+      }
+
+      if (currentIndex < sections.length - 1) {
+        currentIndex++;
+        renderSection(currentIndex);
+      } else {
+        await submitChecklist();
+      }
+    });
+
+    // Build payload and submit to backend (include Authorization header if token present)
+    async function submitChecklist() {
+      showStatus("Submitting responses...", false);
+      btnNext.disabled = true;
+      btnBack.disabled = true;
+
+      const responses = [];
+      for (const section of sections) {
+        for (const questionText of selectedBySection[section]) {
+          responses.push({
+            section: section,
+            question: questionText,
+            answer: "Selected"
+          });
+        }
+      }
+
+      const payload = {
+        user_id: userId,
+        responses: responses
+      };
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const res = await fetch(`${baseURL}/behavior-checklist/submit`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            clearClientAuth();
+            window.location.href = 'signin.html';
+            return;
+          }
+          const txt = await res.text();
+          showStatus("Failed to submit: " + (txt || res.status), true);
+          btnNext.disabled = false;
+          btnBack.disabled = false;
+          return;
+        }
+        const json = await res.json();
+        showStatus(json.message || "Submitted successfully!", false);
+        // mark locally complete for home page use (persist in same storage type as user)
+        try {
+          const persist = !!localStorage.getItem('user') || !!localStorage.getItem('user_id') || !!localStorage.getItem('authToken');
+          setStoredItem('behaviorChecklistCompleted', 'true', persist);
+        } catch (e) {}
+
+        setTimeout(() => {
+          window.location.href = "home.html";
+        }, 1200);
+      } catch (err) {
+        console.error(err);
+        showStatus("Network error while submitting responses.", true);
+        btnNext.disabled = false;
+        btnBack.disabled = false;
+      }
+    }
+
+    function clearClientAuth() {
+      // remove known auth/user keys from both storages
+      const keys = ['user','user_id','userId','userid','username','authToken','token','current_user_id','behaviorChecklistCompleted'];
+      keys.forEach(k => {
+        localStorage.removeItem(k);
+        sessionStorage.removeItem(k);
+      });
+    }
+
+    // initial load
+    loadChecklist();
+  </script>
+</body>
+</html>

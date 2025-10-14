@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Baseline Profile Created</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .navbar {
+      background-color: #268ea6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      color: white;
+    }
+    .navbar-left { display:flex; align-items:center; gap:12px; font-weight:700; }
+    .profile { display:flex; align-items:center; gap:10px; }
+    .profile-circle { width:36px;height:36px;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;font-weight:700; }
+    main { flex:1; display:flex;align-items:center;justify-content:center; padding:40px; box-sizing:border-box; }
+    .card { text-align:center; max-width:720px; width:100%; }
+    .big-icon {
+      width:160px; height:160px; border-radius:50%; background:#16a34a; display:flex;align-items:center;justify-content:center; margin:0 auto 18px auto;
+      box-shadow:0 12px 30px rgba(0,0,0,0.06);
+    }
+    .big-icon svg { width:80px; height:80px; color:#fff; }
+    h2 { margin: 6px 0 10px; font-size:20px; }
+    p.lead { color:#444; margin: 8px 0 18px; }
+    .btn-primary { background:#1f8fa0; color:#fff; border:none; padding:10px 18px; border-radius:8px; cursor:pointer; font-weight:700; }
+    .muted { color:#999; margin-top:14px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-left">
+      <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22" fill="#0a7db5"/></svg>
+      NeuroHue
+    </div>
+    <div class="profile">
+      <div class="profile-circle" id="profileInitial">J</div>
+      <div id="profileName">John</div>
+    </div>
+  </div>
+
+  <main>
+    <div class="card" role="main" aria-live="polite">
+      <div class="big-icon" aria-hidden="true">
+        <!-- green circle with white check -->
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="12" fill="#16a34a"/>
+          <path d="M7 12.5l2.2 2.2L17 7" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h2>Your Baseline profile has been created.</h2>
+      <p class="lead">We'll use this to personalize your support journey.</p>
+
+      <div style="margin-top:18px">
+        <button class="btn-primary" id="continueBtn">Continue</button>
+      </div>
+
+      
+    </div>
+  </main>
+
+  <script>
+    // reuse stored username if present
+    function getStoredItem(key){ return localStorage.getItem(key) ?? sessionStorage.getItem(key); }
+    const rawUser = getStoredItem('user');
+    let displayName = getStoredItem('username') || 'User';
+    if(rawUser){
+      try {
+        const obj = JSON.parse(rawUser);
+        if (obj.user && obj.user.username) displayName = obj.user.username;
+        else if (obj.username) displayName = obj.username;
+      } catch(e){}
+    }
+    document.getElementById('profileName').textContent = displayName;
+    document.getElementById('profileInitial').textContent = displayName && displayName[0] ? displayName[0].toUpperCase() : 'U';
+
+    // Continue button immediate go to dashboard.
+    document.getElementById('continueBtn').addEventListener('click', ()=> {
+      window.location.href = 'subscription.html'; // or your dashboard path
+    });
+
+
+  </script>
+</body>
+</html>

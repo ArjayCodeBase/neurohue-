@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroHue</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #ffffff;
+            margin: 0;
+        }
+
+        .logo {
+            width: 180px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #173c47;
+            margin: 0;
+        }
+
+        p {
+            color: #1a3a47;
+            font-weight: 500;
+            margin: 8px 0 30px 0;
+            text-align: center;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background-color: #173c47;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #246b78;
+        }
+    </style>
+</head>
+<body>
+
+    <img src="logo.png" alt="NeuroHue Logo" class="logo">
+    <h1>NeuroHue</h1>
+    <p>Personalized Support for<br>Neurodevelopmental Growth</p>
+
+    <div class="button-container">
+        <button onclick="window.location.href='signin.html'">Sign In</button>
+        <button onclick="window.location.href='signup.html'">Sign Up</button>
+    </div>
+
+</body>
+</html>

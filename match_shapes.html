@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Match the Shapes | NeuroHue</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      min-height: 100vh;
+    }
+    header {
+      background-color: #0a7db5;
+      width: 100%;
+      color: white;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header .logo { font-weight: bold; font-size: 18px; margin-left: 20px; }
+    header .user { margin-right: 20px; font-weight: bold; }
+    h2 { margin-top: 30px; }
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+      width: 100%;
+      max-width: 920px;
+    }
+    .outlines, .shapes {
+      display:flex;
+      justify-content:center;
+      gap: 24px;
+      margin: 20px;
+      flex-wrap: wrap;
+    }
+    .outline {
+      width: 100px;
+      height: 100px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      position: relative;
+    }
+    .outline svg { width:88px; height:88px; pointer-events:none; }
+    .outline .marker {
+      position:absolute; font-size:20px; font-weight:bold; top:6px; right:8px; pointer-events:none;
+    }
+    .shape {
+      width: 80px;
+      height: 80px;
+      cursor: grab;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+    }
+    .shape svg { width:68px; height:68px; }
+    #result { margin-top:14px; font-weight:bold; text-align:center; }
+    .countdown { margin-top:8px; color:#333; font-size:0.95rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">NeuroHue</div>
+    <div class="user">John</div>
+  </header>
+
+  <h2>Match the Shapes</h2>
+
+  <div class="game-container">
+    <div id="outlines" class="outlines" aria-label="Shape targets"></div>
+    <div id="shapes" class="shapes" aria-label="Draggable shapes"></div>
+    <div id="result" role="status" aria-live="polite"></div>
+    <div id="countdown" class="countdown" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    const baseURL = "http://127.0.0.1:8000"; // adjust to your backend
+
+    // helper: read from localStorage first, then sessionStorage
+    function getStoredItem(key) {
+      return localStorage.getItem(key) ?? sessionStorage.getItem(key);
+    }
+
+    // Retrieve user id from storage (checks multiple common keys: localStorage or sessionStorage)
+    const userId = (function() {
+      const keys = ['user_id', 'userId', 'userid'];
+      for (const k of keys) {
+        const v = getStoredItem(k);
+        if (v !== null && v !== undefined) {
+          const n = Number(v);
+          return Number.isNaN(n) ? v : n; // return number if numeric else string
+        }
+      }
+      return null;
+    })();
+
+    // Retrieve auth token if present
+    const authToken = (function() {
+      return getStoredItem('authToken') ?? getStoredItem('token');
+    })();
+
+    let currentLevel = 1;
+
+    let matchedCount = 0;
+    let droppedCount = 0;
+    let totalShapes = 0;
+    let totalMatchedOverall = 0;
+    let totalShapesOverall = 0;
+
+    // SVG templates
+    function svgOutline(shape) {
+      switch (shape) {
+        case "circle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="40" r="30" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "square": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="60" height="60" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "triangle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,12 72,66 8,66" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "hexagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 65,25 65,55 40,70 15,55 15,25" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "pentagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 68,30 56,62 24,62 12,30" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "star": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 49,32 74,32 54,48 62,72 40,58 18,72 26,48 6,32 31,32" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "heart": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M40 60 L32 52 C16 36 26 20 40 30 C54 20 64 36 48 52 Z" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "crescent": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M52 40a20 20 0 1 1-28-18 14 14 0 1 0 28 18z" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "octagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="28,8 52,8 72,28 72,52 52,72 28,72 8,52 8,28" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "diamond": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 64,40 40,72 16,40" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "trapezoid": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="16,64 64,64 54,20 26,20" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        case "parallelogram": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="20,16 60,16 48,64 8,64" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+        default: return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="10" width="60" height="60" fill="none" stroke="#555" stroke-width="3" stroke-dasharray="6"/></svg>`;
+      }
+    }
+
+    function svgFilled(shape) {
+      switch (shape) {
+        case "circle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="40" r="30" fill="#e53935" /></svg>`;
+        case "square": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="50" height="50" fill="#9ad3f0"/></svg>`;
+        case "triangle": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,12 72,66 8,66" fill="#ffeb3b"/></svg>`;
+        case "hexagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,10 65,25 65,55 40,70 15,55 15,25" fill="#8fd3a7"/></svg>`;
+        case "pentagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 68,30 56,62 24,62 12,30" fill="#f6c667"/></svg>`;
+        case "star": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 49,32 74,32 54,48 62,72 40,58 18,72 26,48 6,32 31,32" fill="#ffd54f"/></svg>`;
+        case "heart": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M40 60 L32 52 C16 36 26 20 40 30 C54 20 64 36 48 52 Z" fill="#ec407a"/></svg>`;
+        case "crescent": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path d="M52 40a20 20 0 1 1-28-18 14 14 0 1 0 28 18z" fill="#90caf9"/></svg>`;
+        case "octagon": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="28,8 52,8 72,28 72,52 52,72 28,72 8,52 8,28" fill="#b39ddb"/></svg>`;
+        case "diamond": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="40,8 64,40 40,72 16,40" fill="#80cbc4"/></svg>`;
+        case "trapezoid": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="16,64 64,64 54,20 26,20" fill="#ffab91"/></svg>`;
+        case "parallelogram": return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><polygon points="20,16 60,16 48,64 8,64" fill="#c5e1a5"/></svg>`;
+        default: return `<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="15" width="50" height="50" fill="#9ad3f0"/></svg>`;
+      }
+    }
+
+    function createOutlineElement(shape) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "outline";
+      wrapper.dataset.shape = shape;
+      wrapper.dataset.placed = "false";
+      wrapper.innerHTML = svgOutline(shape) + `<div class="marker" aria-hidden="true"></div>`;
+      wrapper.addEventListener("dragover", (e) => e.preventDefault());
+      wrapper.addEventListener("drop", handleDropOnOutline);
+      return wrapper;
+    }
+
+    function createDraggableElement(shape, idx) {
+      const el = document.createElement("div");
+      el.className = "shape";
+      el.draggable = true;
+      el.dataset.shape = shape;
+      el.dataset.index = String(idx);
+      el.id = `draggable-${shape}-${idx}`;
+      el.innerHTML = svgFilled(shape);
+      el.addEventListener("dragstart", (ev) => {
+        ev.dataTransfer.setData("text/plain", JSON.stringify({ shape: ev.currentTarget.dataset.shape, id: ev.currentTarget.id }));
+      });
+      return el;
+    }
+
+    async function loadLevel(level) {
+      matchedCount = 0;
+      droppedCount = 0;
+      totalShapes = 0;
+      document.getElementById("result").textContent = "";
+      document.getElementById("countdown").textContent = "";
+
+      try {
+        const headers = {};
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+        const resp = await fetch(`${baseURL}/match-shapes/level/${level}`, { headers });
+        if (!resp.ok) {
+          // no more levels or level missing -> finalize and redirect to home
+          showFinalScoreAndRedirect();
+          return;
+        }
+        const data = await resp.json();
+        renderGame(data);
+      } catch (err) {
+        document.getElementById("result").textContent = "Network error while loading level.";
+        console.error(err);
+      }
+    }
+
+    function renderGame(data) {
+      const outlinesRoot = document.getElementById("outlines");
+      const shapesRoot = document.getElementById("shapes");
+      outlinesRoot.innerHTML = "";
+      shapesRoot.innerHTML = "";
+
+      totalShapes = data.shapes.length;
+      data.outlines.forEach(shapeType => outlinesRoot.appendChild(createOutlineElement(shapeType)));
+      data.shapes.forEach((shapeType, idx) => shapesRoot.appendChild(createDraggableElement(shapeType, idx)));
+
+      document.getElementById("result").textContent = `Playing level ${data.level} — match ${totalShapes} shapes.`;
+    }
+
+    function handleDropOnOutline(e) {
+      e.preventDefault();
+      const outlineEl = e.currentTarget;
+      if (outlineEl.dataset.placed === "true") return;
+
+      let payload;
+      try { payload = JSON.parse(e.dataTransfer.getData("text/plain")); }
+      catch { payload = { shape: e.dataTransfer.getData("shape"), id: null }; }
+
+      const draggedShape = payload.shape;
+      const draggedId = payload.id;
+
+      outlineEl.dataset.placed = "true";
+      droppedCount++;
+
+      const expected = outlineEl.dataset.shape;
+      const marker = outlineEl.querySelector(".marker");
+
+      if (draggedShape === expected) {
+        matchedCount++;
+        marker.textContent = "✓";
+        marker.style.color = "green";
+      } else {
+        marker.textContent = "✗";
+        marker.style.color = "red";
+      }
+
+      if (draggedId) {
+        const draggedEl = document.getElementById(draggedId);
+        if (draggedEl && draggedEl.parentElement) draggedEl.parentElement.removeChild(draggedEl);
+      } else {
+        const candidate = document.querySelector(`#shapes .shape[data-shape="${draggedShape}"]`);
+        if (candidate && candidate.parentElement) candidate.parentElement.removeChild(candidate);
+      }
+
+      if (droppedCount >= totalShapes) {
+        setTimeout(submitResults, 700);
+      }
+    }
+
+    async function submitResults() {
+      totalMatchedOverall += matchedCount;
+      totalShapesOverall += totalShapes;
+
+      // Build payload. Note: server should use auth token to derive user for security.
+      const payload = { user_id: userId, level: currentLevel, matched_shapes: matchedCount, total_shapes: totalShapes };
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+        const resp = await fetch(`${baseURL}/match-shapes/submit`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+          const text = await resp.text();
+          document.getElementById("result").textContent = `Server error: ${resp.status} — ${text}`;
+          return;
+        }
+
+        const result = await resp.json();
+        document.getElementById("result").textContent = `Level ${currentLevel} result: ${result.message} Score: ${result.score}%`;
+
+        // if backend explicitly says there's a next level use it; if next_level is null/undefined -> finalize
+        const hasNext = (typeof result.next_level !== "undefined" && result.next_level !== null);
+
+        let wait = 5;
+        const countdownEl = document.getElementById("countdown");
+        if (!hasNext) {
+          // No next level -> show totals then redirect to home.html after short pause
+          countdownEl.textContent = `Returning to Home in ${wait} s...`;
+          const timer = setInterval(() => {
+            wait--;
+            if (wait > 0) {
+              countdownEl.textContent = `Returning to Home in ${wait} s...`;
+            } else {
+              clearInterval(timer);
+              showFinalScoreAndRedirect();
+            }
+          }, 1000);
+          return;
+        }
+
+        // there is a next level -> show countdown then load next
+        const nextAvailable = result.next_level;
+        countdownEl.textContent = `Next level will start in ${wait} s...`;
+        const timer2 = setInterval(() => {
+          wait--;
+          if (wait > 0) {
+            countdownEl.textContent = `Next level will start in ${wait} s...`;
+          } else {
+            clearInterval(timer2);
+            countdownEl.textContent = "";
+            currentLevel = nextAvailable;
+            loadLevel(currentLevel);
+          }
+        }, 1000);
+
+      } catch (err) {
+        document.getElementById("result").textContent = "Network error while submitting results.";
+        console.error(err);
+      }
+    }
+
+    function showFinalScoreAndRedirect() {
+      const res = document.getElementById("result");
+      if (totalShapesOverall === 0) {
+        res.textContent = "No levels were played. Returning to Home...";
+      } else {
+        const pct = Math.round((totalMatchedOverall / totalShapesOverall) * 100);
+        res.innerHTML = `All levels complete.<br/>Total matched: ${totalMatchedOverall} / ${totalShapesOverall} — <strong>Total score: ${pct}%</strong><br/>Returning to Home...`;
+      }
+
+      // mark complete locally (home.html reads this)
+      try {
+        localStorage.setItem("matchShapesCompleted", "true");
+        localStorage.removeItem("matchShapesInProgress");
+      } catch (e) {
+        console.warn("localStorage unavailable:", e);
+      }
+
+      // short delay so user sees final score, then redirect to home.html
+      setTimeout(() => {
+        window.location.href = "home.html";
+      }, 1500);
+    }
+
+    function ensureLoggedIn() {
+      if (!userId) {
+        // Optionally mark in-progress state then redirect to signin
+        try { localStorage.setItem('matchShapesInProgress', 'true'); } catch(e) {}
+        // Use a non-blocking inline message instead of alert for nicer UX
+        const res = document.getElementById('result');
+        if (res) res.textContent = 'You must be logged in to play. Redirecting to signin...';
+        setTimeout(() => {
+          window.location.href = 'signin.html';
+        }, 900);
+        return false;
+      }
+      return true;
+    }
+
+    // When DOM is ready, update UI and start the game (if logged in)
+    document.addEventListener('DOMContentLoaded', () => {
+      const username = getStoredItem('username') || getStoredItem('user') ? (function(){
+        // if full user object stored as JSON, attempt to extract display name
+        const uRaw = getStoredItem('user');
+        if (uRaw) {
+          try {
+            const uObj = JSON.parse(uRaw);
+            return uObj.username ?? uObj.name ?? uObj.email ?? null;
+          } catch(e) { return null; }
+        }
+        return null;
+      })() : null;
+
+      const userEl = document.querySelector('.user');
+      if (userEl) userEl.textContent = username || getStoredItem('username') || 'Guest';
+
+      if (!ensureLoggedIn()) return;
+
+      // Start automatically
+      loadLevel(currentLevel);
+    });
+
+  </script>
+</body>
+</html>

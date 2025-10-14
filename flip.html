@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Memory Flip | NeuroHue</title>
+<style>
+  :root{ --teal:#268ea6; --dark:#093c44; --accent:#0e7fa8; --muted:#f3f6f7; }
+  *{box-sizing:border-box}
+  body{ margin:0; font-family:Arial, Helvetica, sans-serif; background:#ffffff; color:#08343a; min-height:100vh; }
+
+  /* Topbar (from dashboard) */
+  .topbar{
+    height:64px;
+    background:var(--teal);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 18px;
+    color:#fff;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; }
+  .brand img{ height:34px; width:34px; border-radius:6px; object-fit:cover }
+  .brand .title { font-size:18px; }
+  .topbar-right { display:flex; align-items:center; gap:12px; }
+  .plan-badge{ background:#fff3cf; color:#7a5a10; padding:6px 10px; border-radius:10px; font-size:13px; display:flex; align-items:center; gap:6px; }
+  .profile { background: #0b2b2b; color: #fff; padding:6px 10px; border-radius:22px; display:flex; align-items:center; gap:10px; cursor:pointer; position:relative; }
+  .profile .avatar { width:34px;height:34px;border-radius:50%;background:#fff;color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700; }
+  .profile .name { font-weight:700; font-size:14px; color: #fff; }
+
+  /* layout */
+  .page { display:flex; height: calc(100vh - 64px); }
+  .sidebar {
+    width:280px;
+    background: #f9fbfc;
+    border-right:1px solid #ebeff0;
+    padding:18px;
+    transform: translateX(-320px);
+    transition: transform .22s ease;
+    position:relative;
+    z-index:30;
+  }
+  .sidebar.open { transform: translateX(0); box-shadow: 2px 0 14px rgba(0,0,0,0.05); }
+  .nav-section { margin-top:6px; }
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; cursor:pointer; color:#08343a; margin-bottom:6px; }
+  .nav-item:hover{ background: #eef6f7; }
+  .hamburger{ width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:22px; }
+  .content { flex:1; padding:32px; overflow:auto; }
+  .page-title { text-align:center; color:var(--dark); font-weight:800; font-size:28px; margin-top:6px; margin-bottom:18px; }
+
+  /* profile dropdown */
+  .profile-menu{ position:absolute; right:18px; top:64px; background:#fff; border:1px solid #e6eef0; border-radius:8px; min-width:180px; box-shadow:0 6px 20px rgba(8,52,54,0.08); display:none; z-index:40; }
+  .profile-menu.open{ display:block; }
+  .profile-menu button{ width:100%; border:none; background:transparent; padding:10px 12px; text-align:left; cursor:pointer; }
+  .profile-menu button:hover{ background:#f2f8f9; }
+
+  /* activity submenu */
+  .sublist { padding-left:6px; margin-top:6px; display:none; }
+  .sublist.open { display:block; }
+  .sublist .subitem { display:block; padding:8px 10px; border-radius:6px; cursor:pointer; font-size:14px; color:#2b4d50; text-decoration:none; }
+  .sublist .subitem:hover { background:#eef6f7; }
+  .sublist .subitem:focus { outline:2px solid #bfeef7; }
+
+  /* Memory Flip styles */
+  .levels-grid {
+    display:flex;
+    gap:20px;
+    justify-content:center;
+    align-items:flex-start;
+    margin: 12px 0 32px 0;
+    flex-wrap:wrap;
+  }
+  .level-card {
+    width:200px;
+    background:#fff;
+    border-radius:12px;
+    padding:18px;
+    box-shadow:0 4px 10px rgba(8,52,54,0.06);
+    text-align:center;
+    border:1px solid #e6eef0;
+  }
+  .level-name { font-weight:700; margin-bottom:12px; }
+  .card-thumb { width:84px; height:84px; margin:0 auto 10px; border-radius:10px; background:#f4f6f7; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #eee; }
+  .card-thumb img { width:64px; height:64px; object-fit:contain; display:block; }
+  .card-title { font-weight:700; margin:8px 0 6px; }
+  .start-btn { display:inline-block; padding:6px 14px; border-radius:16px; background:var(--accent); color:#fff; border:none; cursor:pointer; margin-top:6px; }
+  .score-line { margin-top:10px; font-size:13px; color:#2b4d50; }
+  .status-label { font-weight:700; margin-top:6px; font-size:13px; display:block; }
+  .status-complete { color:#2ea84b; }
+  .status-incomplete { color:#d43b3b; }
+
+  .game-area{ margin-top:30px; text-align:center; }
+  .board{ display:grid; gap:12px; justify-content:center; align-content:start; margin:0 auto; }
+  .grid-4{ grid-template-columns: repeat(4, 88px); }
+  .grid-6{ grid-template-columns: repeat(4, 88px); }
+  .grid-8{ grid-template-columns: repeat(4, 88px); }
+
+  .card {
+    width:88px; height:110px; perspective:800px; cursor:pointer; position:relative;
+  }
+  .card-inner {
+    position:absolute; inset:0; transition: transform .45s; transform-style: preserve-3d;
+    border-radius:8px;
+  }
+  .card.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position:absolute; inset:0; backface-visibility:hidden; border-radius:8px; display:flex; align-items:center; justify-content:center; overflow:hidden;
+    border:1px solid #e6eef0; background:#fff;
+  }
+  .card-front { transform: rotateY(180deg); background:#fff; }
+  .card-back { background: linear-gradient(180deg,#f3f6f7,#e9f1f2); font-size:12px; color:#08343a; display:flex; align-items:center; justify-content:center; }
+  .card-face img{ width:64px; height:64px; object-fit:contain; }
+
+  .controls { text-align:center; margin-top:18px; display:flex; gap:12px; justify-content:center; align-items:center; }
+  .start-game{ padding:10px 18px; background:var(--accent); color:#fff; border-radius:20px; border:none; cursor:pointer; }
+  .status-line{ text-align:center; margin-top:12px; color:#556971; }
+
+  .done-panel{ text-align:center; padding:18px; border-radius:10px; background:#f7fff6; border:1px solid #e1f6e6; display:inline-block; margin-top:12px; }
+
+  @media (max-width:740px){
+    .levels-grid { gap:12px; }
+    .level-card { width:160px; padding:14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button id="hamburger" class="hamburger" title="Menu" aria-label="Open menu">☰</button>
+      <div class="brand">
+        <img src="logo.png" alt="logo" />
+        <div class="title">NeuroHue</div>
+      </div>
+    </div>
+
+    <div class="topbar-right" style="position:relative">
+      <div class="plan-badge" id="planBadge">⭐ Premium Plan</div>
+
+      <div id="profileBtn" class="profile" title="Account" aria-haspopup="true" aria-expanded="false">
+        <div class="avatar" id="avatar">U</div>
+        <div class="name" id="topUsername">User</div>
+      </div>
+
+      <div id="profileMenu" class="profile-menu" aria-hidden="true">
+        <button id="viewProfileBtn">View Profile</button>
+        <button id="goToAssess">Initial Assessment</button>
+        <button id="logoutBtn">Log Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <strong style="font-size:14px">Menu</strong>
+        <small style="color:#6b8e90">User Actions</small>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-item" id="navDashboard" role="button" tabindex="0" title="Go to Routines">
+          <div>Dashboard</div>
+          <div style="font-size:13px;color:#6b8e90">⤴</div>
+        </div>
+
+
+         <div class="nav-section">
+        <div class="nav-item" id="navRoutine" role="button" tabindex="0" title="Go to Routines">
+          <div>Routine</div>
+          <div style="font-size:13px;color:#6b8e90">⤴</div>
+        </div>
+
+        <div class="nav-item" id="activityToggle" role="button" aria-expanded="false" tabindex="0">
+          <div>Activity</div>
+          <div id="activityToggleIcon" style="font-size:13px;color:#6b8e90">▸</div>
+        </div>
+
+        <div id="activitySub" class="sublist" aria-hidden="true" role="menu">
+          <a class="subitem" data-activity="gross" href="gross.html" role="menuitem" tabindex="-1">Gross Motor Skills</a>
+          <a class="subitem" data-activity="fine" href="fine.html" role="menuitem" tabindex="-1">Fine Motor Skills</a>
+          <a class="subitem" data-activity="speech" href="speech.html" role="menuitem" tabindex="-1">Speech &amp; Learning</a>
+          <a class="subitem" data-activity="cognitive" href="cognitive.html" role="menuitem" tabindex="-1">Cognitive &amp; Learning</a>
+          <a class="subitem" data-activity="behavior" href="behavior.html" role="menuitem" tabindex="-1">Behavior &amp; Social Skills</a>
+        </div>
+      </div>
+
+      <hr style="margin:14px 0;border:none;border-top:1px solid #eef4f5" />
+      <div style="font-size:13px;color:#5f7a7c">Quick Links</div>
+      <div style="height:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">Progress</button>
+        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">Reports</button>
+      </div>
+    </aside>
+
+    <main class="content" role="main">
+      <div class="page-title">Memory Flip</div>
+
+      <!-- Level cards -->
+      <div class="levels-grid" id="levelsGrid" role="list"></div>
+
+      <!-- Game area -->
+      <div class="game-area" id="gameArea" style="display:none;">
+        <div style="text-align:center;margin-bottom:12px">
+          <button class="start-game" id="btnStartInner">Restart Level</button>
+        </div>
+        <div id="boardWrap" style="text-align:center">
+          <div id="board" class="board"></div>
+          <div class="status-line" id="statusLine">Choose a level and press Start.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+  const baseURL = "http://127.0.0.1:8000";
+  const INITIAL_REVEAL_MS = 5000; // show all cards face-up for 5 seconds
+  function $(id){ return document.getElementById(id); }
+
+  // Robust stored user loader (same behavior as dashboard)
+  function loadStoredUser() {
+    const raw = localStorage.getItem('user') ?? sessionStorage.getItem('user')
+             ?? localStorage.getItem('currentUser') ?? sessionStorage.getItem('currentUser')
+             ?? localStorage.getItem('current_user') ?? sessionStorage.getItem('current_user');
+    if (!raw) {
+      const uname = localStorage.getItem('username') ?? sessionStorage.getItem('username');
+      const uid = localStorage.getItem('user_id') ?? sessionStorage.getItem('user_id') ?? localStorage.getItem('userId') ?? sessionStorage.getItem('userId');
+      return { id: uid || null, username: uname || 'User' };
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      const userObj = parsed.user ?? parsed;
+      const id = userObj.id ?? userObj.user_id ?? parsed.user_id ?? parsed.id ?? null;
+      const username = userObj.username ?? userObj.name ?? parsed.username ?? parsed.email ?? 'User';
+      return { id, username };
+    } catch (e) {
+      return { id: null, username: raw };
+    }
+  }
+
+  const storedUser = loadStoredUser();
+  $('topUsername').textContent = storedUser.username || 'User';
+  $('avatar').textContent = (storedUser.username && storedUser.username.length>0) ? storedUser.username.charAt(0).toUpperCase() : 'U';
+
+  // sidebar toggle
+  const hamburger = $('hamburger');
+  const sidebar = $('sidebar');
+  let sidebarOpen = false;
+  hamburger.addEventListener('click', () => {
+    sidebarOpen = !sidebarOpen;
+    sidebar.classList.toggle('open', sidebarOpen);
+    sidebar.setAttribute('aria-hidden', String(!sidebarOpen));
+  });
+  if (window.innerWidth > 900) { sidebar.classList.add('open'); sidebar.setAttribute('aria-hidden','false'); }
+
+  // profile dropdown
+  const profileBtn = $('profileBtn');
+  const profileMenu = $('profileMenu');
+  let profileOpen = false;
+  profileBtn.addEventListener('click', () => {
+    profileOpen = !profileOpen;
+    profileMenu.classList.toggle('open', profileOpen);
+    profileMenu.setAttribute('aria-hidden', String(!profileOpen));
+    profileBtn.setAttribute('aria-expanded', String(profileOpen));
+  });
+
+  document.addEventListener('click', (e)=> {
+    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+      profileOpen = false;
+      profileMenu.classList.remove('open');
+      profileMenu.setAttribute('aria-hidden','true');
+      profileBtn.setAttribute('aria-expanded','false');
+    }
+  });
+
+  function doLogout(){
+    const keys = ['user','currentUser','current_user','username','user_id','userId','userid','authToken','token','planName'];
+    keys.forEach(k=>{ try{ localStorage.removeItem(k); sessionStorage.removeItem(k); } catch(e){} });
+    window.location.href = 'signin.html';
+  }
+  $('logoutBtn')?.addEventListener('click', doLogout);
+  $('viewProfileBtn')?.addEventListener('click', ()=> window.location.href='profile.html');
+  $('goToAssess')?.addEventListener('click', ()=> window.location.href='initial_progress_assessment.html');
+
+  // activity toggle (sidebar)
+  const activityToggle = $('activityToggle');
+  const activitySub = $('activitySub');
+  const activityToggleIcon = $('activityToggleIcon');
+  let activityOpen = false;
+  if (activityToggle) {
+    activityToggle.addEventListener('click', () => {
+      activityOpen = !activityOpen;
+      activitySub.classList.toggle('open', activityOpen);
+      activityToggle.setAttribute('aria-expanded', String(activityOpen));
+      activityToggleIcon.textContent = activityOpen ? '▾' : '▸';
+      activitySub.querySelectorAll('.subitem').forEach(a => a.tabIndex = activityOpen ? 0 : -1);
+      if (activityOpen) {
+        const first = activitySub.querySelector('.subitem');
+        if (first) first.focus();
+      } else {
+        activityToggle.focus();
+      }
+    });
+    activityToggle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.code === 'Space') { e.preventDefault(); activityToggle.click(); }
+    });
+  }
+  document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
+
+  // Memory Flip UI & game logic
+  const levelImages = { 'easy': 'flip.png', 'medium': 'flip.png', 'hard': 'flip.png' };
+  let levelsList = [];
+  let progressMap = {}; // progress by level
+  let selectedLevel = null;
+  let deckInfo = null;
+  let cardState = {}, firstCard = null, secondCard = null, isChecking = false, attempts = 0, matched = 0, startTime = null;
+
+  async function loadAndRenderLevels(){
+    try {
+      const res = await fetch(baseURL + "/memory-flip/levels");
+      levelsList = await (res.ok ? res.json() : Promise.reject());
+    } catch(e) {
+      levelsList = [{id:'easy',pairs:4},{id:'medium',pairs:6},{id:'hard',pairs:8}];
+    }
+
+    // fetch user progress if user exists
+    progressMap = {};
+    if (storedUser && storedUser.id) {
+      try {
+        const res2 = await fetch(`${baseURL}/memory-flip/progress/${encodeURIComponent(storedUser.id)}`);
+        if (res2.ok) {
+          const json = await res2.json();
+          // expected shape: { user_id, progress: { easy: {score, completed}, medium: {...} } }
+          // normalize a few possible shapes
+          const p = json.progress || json || {};
+          // coerce keys/values to expected form
+          Object.keys(p).forEach(k => {
+            try {
+              const item = p[k] || {};
+              const score = (item.score !== undefined && item.score !== null) ? Number(item.score) : (item.latest_score ? Number(item.latest_score) : null);
+              const completed = (item.completed === true || String(item.completed).toLowerCase() === 'yes' || Number(score) >= 20);
+              progressMap[k] = { score: score, completed: !!completed };
+            } catch(err){ /* ignore malformed item */ }
+          });
+        }
+      } catch(e){ console.warn('progress fetch failed', e); }
+    }
+
+    renderLevelCards();
+  }
+
+  function renderLevelCards(){
+    const root = $('levelsGrid');
+    root.innerHTML = '';
+    const order = ['easy','medium','hard'];
+    const ordered = order.map(k => levelsList.find(l=>l.id===k)).filter(Boolean).concat(levelsList.filter(l=>!order.includes(l.id)));
+    ordered.forEach(l => {
+      const lvl = l.id;
+      const scoreObj = progressMap[lvl] || null;
+      const scoreText = (scoreObj && scoreObj.score !== undefined && scoreObj.score !== null) ? `Score : ${scoreObj.score}` : 'Score : -';
+      const completed = scoreObj ? !!scoreObj.completed : false;
+
+      const card = document.createElement('div');
+      card.className = 'level-card';
+      card.setAttribute('role','listitem');
+      card.innerHTML = `
+        <div class="level-name">${capitalize(lvl)}</div>
+        <div class="card-thumb"><img src="${levelImages[lvl] || 'flip.png'}" alt="${lvl}"></div>
+        <div class="card-title">Memory Flip</div>
+        <div><button class="start-btn" data-level="${lvl}">Start</button></div>
+        <div class="score-line">${escapeHtml(scoreText)}</div>
+        <div class="status-label ${completed ? 'status-complete' : 'status-incomplete'}">
+          ${completed ? 'Complete' : 'Incomplete'}
+        </div>
+      `;
+      card.querySelector('.start-btn').addEventListener('click', ()=> {
+        startLevel(lvl);
+        setTimeout(()=> { document.querySelector('.game-area')?.scrollIntoView({behavior:'smooth', block:'start'}); }, 120);
+      });
+      root.appendChild(card);
+    });
+  }
+
+  function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+  function escapeHtml(s){ if (!s) return ''; return String(s).replace(/[&<>"']/g, (m)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  async function startLevel(lvl){
+    if (!lvl) return;
+    selectedLevel = lvl;
+    $('statusLine').textContent = `Preparing ${capitalize(lvl)} deck...`;
+    $('gameArea').style.display = 'block';
+    document.querySelector('.done-panel')?.remove();
+
+    try {
+      const payload = { level: lvl, user_id: storedUser.id || null };
+      const res = await fetch(baseURL + "/memory-flip/start", {
+        method:'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('start failed');
+      deckInfo = await res.json();
+      initializeBoard(deckInfo.cards);
+
+      // initial reveal
+      await revealAllCards(INITIAL_REVEAL_MS);
+
+      // start game
+      attempts = 0; matched = 0; startTime = Date.now();
+      $('statusLine').textContent = `Game started — ${deckInfo.cards.length/2} pairs. Flip two cards to match.`;
+    } catch(err){
+      console.error(err);
+      $('statusLine').textContent = 'Failed to start game (see console).';
+      deckInfo = null;
+    }
+  }
+
+  function revealAllCards(ms){
+    return new Promise(resolve => {
+      if (!deckInfo) { resolve(); return; }
+      isChecking = true;
+      const cards = Array.from(document.querySelectorAll('#board .card'));
+      cards.forEach(c => c.classList.add('flipped'));
+      $('statusLine').textContent = `Memorize the cards — they will flip back in ${Math.round(ms/1000)}s`;
+      setTimeout(()=> {
+        cards.forEach(c => c.classList.remove('flipped'));
+        setTimeout(()=> { isChecking = false; resolve(); }, 350);
+      }, ms);
+    });
+  }
+
+  function initializeBoard(cards){
+    const board = $('board');
+    board.innerHTML = '';
+    cardState = {};
+    firstCard = null; secondCard = null; isChecking = false;
+    const cardCount = cards.length;
+    board.classList.remove('grid-4','grid-6','grid-8');
+    if (cardCount === 8) board.classList.add('grid-4');
+    else if (cardCount === 12) board.classList.add('grid-6');
+    else if (cardCount === 16) board.classList.add('grid-8');
+
+    cards.forEach(c=>{
+      cardState[c.card_id] = { matched:false, flipped:false, image:c.image };
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.id = c.card_id;
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="card-face card-front"><img src="${c.image}" alt="face" /></div>
+          <div class="card-face card-back"><div style="font-size:12px;color:#0b2b2b">NeuroHue</div></div>
+        </div>
+      `;
+      card.addEventListener('click', onCardClick);
+      board.appendChild(card);
+    });
+  }
+
+  function onCardClick(e){
+    const el = e.currentTarget;
+    const id = el.dataset.id;
+    if (!deckInfo || !cardState[id]) return;
+    if (isChecking) return;
+    if (cardState[id].matched) return;
+    if (el.classList.contains('flipped')) return;
+
+    flipCard(el);
+    if (!firstCard) { firstCard = { id, el }; return; }
+    if (firstCard && firstCard.id === id) return;
+    if (!secondCard) {
+      secondCard = { id, el };
+      attempts++;
+      const aImg = cardState[firstCard.id].image;
+      const bImg = cardState[secondCard.id].image;
+      if (aImg === bImg) {
+        cardState[firstCard.id].matched = true;
+        cardState[secondCard.id].matched = true;
+        matched++;
+        firstCard = null; secondCard = null;
+        if (matched === (deckInfo.cards.length/2)) onGameComplete();
+      } else {
+        isChecking = true;
+        setTimeout(()=> {
+          unflipCard(firstCard.el);
+          unflipCard(secondCard.el);
+          firstCard = null; secondCard = null;
+          isChecking = false;
+        }, 800);
+      }
+    }
+  }
+
+  function flipCard(cardEl){
+    cardEl.classList.add('flipped');
+    try { cardState[cardEl.dataset.id].flipped = true; } catch(e){}
+  }
+  function unflipCard(cardEl){
+    cardEl.classList.remove('flipped');
+    try { cardState[cardEl.dataset.id].flipped = false; } catch(e){}
+  }
+
+  async function onGameComplete(){
+    const timeSeconds = (Date.now() - startTime) / 1000.0;
+    $('statusLine').textContent = `All matched! Recording your result...`;
+    const pairs = [];
+    const ids = Object.keys(cardState);
+    const used = new Set();
+    for (let i=0;i<ids.length;i++){
+      for (let j=i+1;j<ids.length;j++){
+        if (cardState[ids[i]].image === cardState[ids[j]].image && !used.has(ids[i]) && !used.has(ids[j])) {
+          pairs.push([ids[i], ids[j]]);
+          used.add(ids[i]); used.add(ids[j]);
+        }
+      }
+    }
+
+    const payload = { deck_id: deckInfo.deck_id, user_id: storedUser.id || null, matched_pairs: pairs, attempts_count: attempts, time_seconds: timeSeconds };
+
+    try {
+      const res = await fetch(baseURL + "/memory-flip/attempt", {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error("submit failed");
+      const j = await res.json();
+      $('statusLine').textContent = `Done — matched ${j.matched_pairs}/${j.total_pairs}. Score: ${j.score}`;
+
+      // POST progress to backend (endpoint should exist)
+      if (storedUser && storedUser.id) {
+        try {
+          await fetch(baseURL + "/memory-flip/progress", {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              user_id: storedUser.id,
+              level: deckInfo.level,
+              score: j.score,
+              completed: j.score >= 20
+            })
+          });
+        } catch(e){ console.warn('could not save progress', e); }
+      }
+
+      await loadAndRenderLevels();
+
+      const boardWrap = $('board');
+      const panel = document.createElement('div');
+      panel.className = 'done-panel';
+      panel.innerHTML = `<div style="font-weight:700;font-size:18px">Well done!</div>
+                         <div style="margin-top:6px">Score: ${j.score} • Attempts: ${attempts} • Time: ${Math.round(timeSeconds)}s</div>
+                         <div style="margin-top:10px"><button onclick="window.scrollTo({top:0,behavior:'smooth'})">Back to Levels</button></div>`;
+      const old = document.querySelector('.done-panel'); if (old) old.remove();
+      boardWrap.parentNode.insertBefore(panel, boardWrap.nextSibling);
+    } catch (err) {
+      console.error(err);
+      $('statusLine').textContent = 'Failed to save result (see console).';
+    }
+  }
+
+  $('btnStartInner').addEventListener('click', ()=> { if (selectedLevel) startLevel(selectedLevel); });
+
+  // initial load
+  loadAndRenderLevels();
+
+  // ROUTINE nav: single entry that goes to routine page
+  const navDashboard = $('navDashboard');
+  if (navDashboard) {
+    navDashboard.addEventListener('click', ()=> {
+      window.location.href = 'dashboard.html';
+    });
+  }
+
+
+
+  // ROUTINE nav: single entry that goes to routine page
+  const navRoutine = $('navRoutine');
+  if (navRoutine) {
+    navRoutine.addEventListener('click', ()=> {
+      window.location.href = 'routine.html';
+    });
+  }
+
+
+
+
+</script>
+</body>
+</html>

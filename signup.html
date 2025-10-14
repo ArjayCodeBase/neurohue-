@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroHue Sign Up</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f7f8fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    .container {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        width: 360px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+
+    .container img {
+        width: 80px;
+        margin-bottom: 10px;
+    }
+
+    h2 {
+        color: #0d2e2f;
+        font-size: 20px;
+        margin-bottom: 10px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 8px;
+        margin: 6px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .small {
+      font-size: 13px;
+    }
+
+    .button {
+        width: 100%;
+        background-color: #0d2e2f;
+        color: white;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+
+    .step { display: none; }
+    .step.active { display: block; }
+
+    .progress { display: flex; justify-content: center; margin: 10px 0; }
+    .bar { height: 6px; width: 60px; border-radius: 3px; margin: 0 3px; background-color: #ccc; }
+    .bar.active { background-color: #0d2e2f; }
+
+    .radio-group, .checkbox-group { text-align: left; margin-top: 10px; }
+    .radio-group label, .checkbox-group label { display: block; }
+
+    .signin-link { margin-top: 15px; font-size: 13px; }
+    .signin-link a { color: #0d2e2f; font-weight: bold; text-decoration: none; }
+    .signin-link a:hover { text-decoration: underline; }
+
+    #message { margin-top:10px; font-size: 14px; min-height: 20px; }
+    #message.error { color: #c0392b; }
+    #message.success { color: #16a34a; }
+    .row { display:flex; gap:8px; }
+
+    /* small tweak for gender radios layout */
+    .gender-group { display:flex; gap:8px; justify-content: space-between; margin-top:8px; }
+    .gender-option { flex: 1; text-align: left; padding: 6px; border: 1px solid #e6e6e6; border-radius: 4px; }
+    .gender-option input { margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="container" role="main">
+    <img src="logo.png" alt="NeuroHue Logo">
+    <h2>NeuroHue</h2>
+
+    <div class="progress" aria-hidden="false">
+        <div class="bar" id="bar1"></div>
+        <div class="bar" id="bar2"></div>
+        <div class="bar" id="bar3"></div>
+        <div class="bar" id="bar4"></div>
+    </div>
+
+    <!-- Step 1: Account Info -->
+    <div class="step active" id="step1">
+        <h3>Account Setup</h3>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button class="button" id="toStep2" onclick="nextStep(2)">Next</button>
+    </div>
+
+    <!-- Step 2: Personal Information -->
+    <div class="step" id="step2">
+        <h3>Personal Information</h3>
+        <input type="text" id="firstname" placeholder="First name" required>
+        <input type="text" id="lastname" placeholder="Last name" required>
+        <input type="date" id="birthday" required>
+
+        <!-- Gender radios added here -->
+        <div class="radio-group" aria-label="Gender" role="radiogroup">
+            <div class="gender-group">
+              <label class="gender-option"><input type="radio" name="gender" value="Male"> Male</label>
+              <label class="gender-option"><input type="radio" name="gender" value="Female"> Female</label>
+              <label class="gender-option"><input type="radio" name="gender" value="Other"> Other</label>
+            </div>
+            <div style="margin-top:8px; font-size:12px; color:#666;">Select your gender (required)</div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="button" style="flex:1; background:#bbb" onclick="prevStep(1)">Back</button>
+          <button class="button" style="flex:1" onclick="nextStep(3)">Next</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Location and Role -->
+    <div class="step" id="step3">
+        <h3>Location and Role</h3>
+        <input type="text" id="address" placeholder="City, Province, Country" required>
+        <div class="radio-group">
+            <label><input type="radio" name="role" value="Parent"> Parent</label>
+            <label><input type="radio" name="role" value="Teacher"> Teacher</label>
+            <label><input type="radio" name="role" value="Individual"> Individual</label>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="button" style="flex:1; background:#bbb" onclick="prevStep(2)">Back</button>
+          <button class="button" style="flex:1" onclick="nextStep(4)">Next</button>
+        </div>
+    </div>
+
+    <!-- Step 4: Select Condition -->
+    <div class="step" id="step4">
+        <h3>Select Condition</h3>
+        <div class="checkbox-group">
+            <label><input type="checkbox" value="ASD" class="condition"> ASD</label>
+            <label><input type="checkbox" value="ADHD" class="condition"> ADHD</label>
+            <label><input type="checkbox" value="ID" class="condition"> ID</label>
+            <label><input type="checkbox" value="Hearing Impairment" class="condition"> Hearing Impairment</label>
+            <label><input type="checkbox" value="SPD" class="condition"> SPD</label>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:8px; align-items:center;">
+          <div style="flex:1;">
+            <label class="small"><input type="checkbox" id="keepSigned"> Keep me signed in</label>
+          </div>
+          <div style="flex:1; display:flex; gap:8px;">
+            <button class="button" style="flex:1; background:#bbb" onclick="prevStep(3)">Back</button>
+            <button class="button" id="submitBtn" style="flex:1" onclick="submitForm()">Submit Registration</button>
+          </div>
+        </div>
+    </div>
+
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <div class="signin-link">
+        Already have an account? <a href="signin.html">Sign In</a>
+    </div>
+</div>
+
+<script>
+let currentStep = 1;
+
+function nextStep(step) {
+    // basic validation for required fields on step 1 and 2/3
+    if (step === 2) {
+      const u = document.getElementById("username").value.trim();
+      const e = document.getElementById("email").value.trim();
+      const p = document.getElementById("password").value;
+      if (!u || !e || !p) { showMessage("Please fill username, email and password.", "error"); return; }
+    }
+    if (step === 3) {
+      const fn = document.getElementById("firstname").value.trim();
+      const ln = document.getElementById("lastname").value.trim();
+      const bd = document.getElementById("birthday").value;
+      const gender = document.querySelector('input[name="gender"]:checked')?.value;
+      if (!fn || !ln || !bd || !gender) { showMessage("Please complete personal information (including gender).", "error"); return; }
+    }
+
+    document.getElementById(`step${currentStep}`).classList.remove("active");
+    currentStep = step;
+    document.getElementById(`step${step}`).classList.add("active");
+    updateProgress(step);
+    clearMessage();
+}
+
+function prevStep(step) {
+    document.getElementById(`step${currentStep}`).classList.remove("active");
+    currentStep = step;
+    document.getElementById(`step${step}`).classList.add("active");
+    updateProgress(step);
+    clearMessage();
+}
+
+function updateProgress(step) {
+    document.querySelectorAll(".bar").forEach((bar, index) => {
+        bar.classList.toggle("active", index < step);
+    });
+}
+
+function showMessage(msg, type="error"){
+    const el = document.getElementById("message");
+    el.textContent = msg;
+    // normalize classes
+    el.className = "";
+    if (type === "error") {
+      el.classList.add("error");
+    } else {
+      el.classList.add("success");
+    }
+}
+function clearMessage(){
+    const el = document.getElementById("message");
+    el.textContent = "";
+    el.className = "";
+}
+
+// ---------- storage helpers ----------
+function saveKey(key, value, persistent) {
+  try {
+    if (persistent) {
+      localStorage.setItem(key, value);
+      sessionStorage.removeItem(key);
+    } else {
+      sessionStorage.setItem(key, value);
+      localStorage.removeItem(key);
+    }
+  } catch(e) {
+    // ignore storage error
+    console.warn('Storage error', e);
+  }
+}
+
+// try to extract id/username/token from many possible server response shapes
+function parseSignupResult(result) {
+  let userId = null;
+  let username = null;
+  let token = null;
+
+  if (!result) return { userId, username, token, raw: result };
+
+  if (result.user && typeof result.user === 'object') {
+    const u = result.user;
+    userId = u.id ?? u.user_id ?? u.userId ?? userId;
+    username = u.username ?? u.name ?? u.email ?? username;
+    token = result.access_token ?? result.token ?? u.token ?? token;
+  }
+
+  userId = userId ?? result.user_id ?? result.id ?? result.userId ?? null;
+  username = username ?? result.username ?? result.name ?? result.email ?? null;
+  token = token ?? result.access_token ?? result.token ?? result.authToken ?? null;
+
+  return { userId, username, token, raw: result };
+}
+
+// submit registration and redirect to home on success
+async function submitForm() {
+    // collect fields
+    const gender = document.querySelector('input[name="gender"]:checked')?.value || "";
+    const role = document.querySelector('input[name="role"]:checked')?.value || "";
+    const conditions = Array.from(document.querySelectorAll('.condition:checked')).map(c => c.value);
+
+    const userData = {
+        username: document.getElementById("username").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        password: document.getElementById("password").value,
+        firstname: document.getElementById("firstname").value.trim(),
+        lastname: document.getElementById("lastname").value.trim(),
+        birthday: document.getElementById("birthday").value,
+        gender: gender,
+        address: document.getElementById("address").value.trim(),
+        role: role,
+        condition: conditions.join(", ")
+    };
+
+    // minimal front validation
+    if (!userData.username || !userData.email || !userData.password) {
+        showMessage("Please complete the account fields.", "error");
+        return;
+    }
+    // ensure gender present before submit (defensive)
+    if (!userData.gender) {
+      showMessage("Please select your gender.", "error");
+      return;
+    }
+
+    const persistent = document.getElementById("keepSigned").checked; // keep signed in -> localStorage
+
+    // disable button & show submitting state
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    const prevText = btn.textContent;
+    btn.textContent = "Submitting...";
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/signup", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(userData)
+        });
+
+        let result = null;
+        try { result = await response.json(); } catch(e) { result = null; }
+
+        if (response.ok) {
+            // show success
+            showMessage("Registration successful! Redirecting...", "success");
+
+            // parse server result and store minimal info for other pages
+            const parsed = parseSignupResult(result);
+
+            const savedUser = { id: parsed.userId ?? null, username: parsed.username ?? userData.username };
+
+            // store a compact object under 'user' and also minimal keys user_id/username
+            try {
+                if (persistent) {
+                  localStorage.setItem("user", JSON.stringify(savedUser));
+                  if (parsed.userId !== null && typeof parsed.userId !== 'undefined') {
+                    localStorage.setItem("user_id", String(parsed.userId));
+                    localStorage.setItem("userId", String(parsed.userId));
+                    localStorage.setItem("userid", String(parsed.userId));
+                  }
+                  if (parsed.username) localStorage.setItem("username", String(parsed.username));
+                  if (parsed.token) localStorage.setItem("authToken", String(parsed.token));
+                } else {
+                  sessionStorage.setItem("user", JSON.stringify(savedUser));
+                  if (parsed.userId !== null && typeof parsed.userId !== 'undefined') {
+                    sessionStorage.setItem("user_id", String(parsed.userId));
+                    sessionStorage.setItem("userId", String(parsed.userId));
+                    sessionStorage.setItem("userid", String(parsed.userId));
+                  }
+                  if (parsed.username) sessionStorage.setItem("username", String(parsed.username));
+                  if (parsed.token) sessionStorage.setItem("authToken", String(parsed.token));
+                }
+            } catch (e) {
+                console.warn("Unable to save user to storage:", e);
+            }
+
+            // short delay then redirect to home
+            setTimeout(() => {
+                window.location.href = "home.html";
+            }, 900);
+        } else {
+            // backend returned an error
+            const detail = (result && (result.detail || result.message || result.error)) || JSON.stringify(result) || `HTTP ${response.status}`;
+            showMessage(detail, "error");
+            btn.disabled = false;
+            btn.textContent = prevText;
+        }
+    } catch (err) {
+        showMessage("Server error. Please try again later.", "error");
+        btn.disabled = false;
+        btn.textContent = prevText;
+        console.error("Signup error:", err);
+    }
+}
+</script>
+</body>
+</html>

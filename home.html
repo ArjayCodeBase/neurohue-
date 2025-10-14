@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Initial Progress Assessment</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .navbar {
+      background-color: #268ea6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      color: white;
+    }
+
+    .navbar img {
+      height: 35px;
+      margin-right: 10px;
+    }
+
+    .navbar-left {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .navbar-right .profile-icon {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background-color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: black;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      text-align: center;
+      margin: 40px auto;
+      flex-grow: 1;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 40px;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+    }
+
+    .card {
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      width: 220px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+    }
+
+    .card img {
+      width: 70px;
+      height: 70px;
+    }
+
+    .card h3 {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 15px 0 5px;
+    }
+
+    .card p {
+      font-size: 13px;
+      color: #555;
+      margin: 0 0 15px;
+    }
+
+    .card button {
+      background-color: #093c44;
+      color: white;
+      border: none;
+      padding: 6px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .card button:hover {
+      background-color: #0e5a67;
+    }
+
+    .status {
+      font-size: 13px;
+      margin-top: 8px;
+    }
+
+    .status.in-progress {
+      color: #c0392b;
+    }
+
+    .status.complete {
+      color: #16a34a;
+    }
+
+    .step {
+      font-weight: bold;
+      margin-top: 30px;
+    }
+
+    .next-btn:hover {
+      background-color: #0e5a67;
+    }
+
+    .note {
+      margin-top: 12px;
+      color: #444;
+      font-size: 13px;
+    }
+
+    /* inline redirect banner */
+    .redirect-banner {
+      margin-top: 18px;
+      background: #eaf6f6;
+      color: #0b5345;
+      display: inline-block;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid #cfeae8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-left">
+      <img src="logo.png" alt="Logo" />
+      NeuroHue
+    </div>
+    <div class="navbar-right">
+      <div class="profile-icon" id="profileIcon">J</div>
+      <span id="username">John</span>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="title">Initial Progress Assessment</div>
+
+    <div class="cards">
+      <div class="card" id="match-shapes-card">
+        <img src="match-shapes.png" alt="Match Shapes" />
+        <h3>Match the Shapes</h3>
+        <p>Drag and match the shapes to their outlines</p>
+        <button id="startMatchShapes">Start</button>
+        <div class="status in-progress" id="matchShapesStatus">In-progress</div>
+        <div class="note" id="matchShapesNote" aria-live="polite"></div>
+      </div>
+
+      <div class="card" id="behavior-card">
+        <img src="checklist.png" alt="Behavior Checklist" />
+        <h3>Behavior Checklist</h3>
+        <p>Answer a short behavior checklist</p>
+        <button id="startBehaviorChecklist">Start</button>
+        <div class="status in-progress" id="behaviorStatus">In-progress</div>
+        <div class="note" id="behaviorNote" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div id="redirectArea" style="margin-top:18px;"></div>
+
+  <script>
+    const baseURL = "http://127.0.0.1:8000";
+
+    // Storage helpers
+    function getStoredItem(key) {
+      const v = localStorage.getItem(key);
+      if (v !== null) return v;
+      return sessionStorage.getItem(key);
+    }
+    function removeStoredItem(key) {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    }
+    function storeCurrentUserId(userId) {
+      // prefer the same storage that originally held 'user' or user_id keys
+      const sessionKeys = ['user', 'user_id', 'userId', 'userid', 'authToken'];
+      for (const k of sessionKeys) {
+        if (sessionStorage.getItem(k) !== null) {
+          sessionStorage.setItem('current_user_id', String(userId));
+          return;
+        }
+      }
+      // otherwise persist in localStorage (user likely checked 'remember me')
+      localStorage.setItem('current_user_id', String(userId));
+    }
+
+    // Parse any stored user object to find id and username
+    function parseStoredUser() {
+      const rawUser = getStoredItem('user');
+      if (rawUser) {
+        try {
+          const obj = JSON.parse(rawUser);
+          if (obj.user && typeof obj.user === 'object') {
+            const u = obj.user;
+            return {
+              id: u.id ?? u.user_id ?? u.userId ?? obj.id ?? obj.user_id ?? null,
+              username: u.username ?? u.name ?? u.email ?? obj.username ?? null
+            };
+          }
+          return {
+            id: obj.id ?? obj.user_id ?? obj.userId ?? null,
+            username: obj.username ?? obj.name ?? obj.email ?? null
+          };
+        } catch (e) {
+          // not JSON — ignore
+        }
+      }
+
+      const id = getStoredItem('user_id') ?? getStoredItem('userId') ?? getStoredItem('userid') ?? null;
+      const username = getStoredItem('username') ?? null;
+      return { id: id !== null ? (isNaN(Number(id)) ? id : Number(id)) : null, username };
+    }
+
+    function getAuthToken() {
+      return getStoredItem('authToken') ?? getStoredItem('token') ?? null;
+    }
+
+    // Load current user or redirect to signin if missing
+    const parsed = parseStoredUser();
+    if (!parsed || !parsed.id) {
+      // no logged in user
+      window.location.href = 'signin.html';
+    }
+    const userId = parsed.id;
+    const username = parsed.username ?? 'Guest';
+    const authToken = getAuthToken();
+
+    // Update UI
+    document.getElementById("username").textContent = username;
+    document.getElementById("profileIcon").textContent = (username && username.length>0) ? username.charAt(0).toUpperCase() : 'U';
+
+    // UI helper functions
+    function setMatchShapesCompleteUI() {
+      const s = document.getElementById("matchShapesStatus");
+      const b = document.getElementById("startMatchShapes");
+      const n = document.getElementById("matchShapesNote");
+      s.textContent = "Complete";
+      s.classList.remove('in-progress'); s.classList.add('complete');
+      b.textContent = "Done";
+      b.disabled = true;
+      n.textContent = "All levels complete.";
+    }
+
+    function setMatchShapesInProgressUI() {
+      const s = document.getElementById("matchShapesStatus");
+      const b = document.getElementById("startMatchShapes");
+      const n = document.getElementById("matchShapesNote");
+      s.textContent = "In-progress";
+      s.classList.remove('complete'); s.classList.add('in-progress');
+      b.textContent = "Start";
+      b.disabled = false;
+      n.textContent = "Not yet finished.";
+    }
+
+    function setBehaviorCompleteUI() {
+      const s = document.getElementById("behaviorStatus");
+      const b = document.getElementById("startBehaviorChecklist");
+      const n = document.getElementById("behaviorNote");
+      s.textContent = "Complete";
+      s.classList.remove('in-progress'); s.classList.add('complete');
+      b.textContent = "Done";
+      b.disabled = true;
+      n.textContent = "Checklist submitted.";
+    }
+
+    function setBehaviorInProgressUI() {
+      const s = document.getElementById("behaviorStatus");
+      const b = document.getElementById("startBehaviorChecklist");
+      const n = document.getElementById("behaviorNote");
+      s.textContent = "In-progress";
+      s.classList.remove('complete'); s.classList.add('in-progress');
+      b.textContent = "Start";
+      b.disabled = false;
+      n.textContent = "Not yet finished.";
+    }
+
+    // Navigation: preserve session/local storage choice when setting current_user_id
+    document.getElementById("startMatchShapes").addEventListener("click", () => {
+      storeCurrentUserId(userId);
+      window.location.href = "match_shapes.html";
+    });
+
+    document.getElementById("startBehaviorChecklist").addEventListener("click", () => {
+      storeCurrentUserId(userId);
+      window.location.href = "behavior_checklist.html";
+    });
+
+    // helper that checks local flags too
+    function localFlagsBothDone() {
+      const m = getStoredItem('matchShapesCompleted') === 'true';
+      const b = getStoredItem('behaviorChecklistCompleted') === 'true';
+      return m && b;
+    }
+
+    // When both done => show banner then redirect after 5s to baseline confirmation page
+    function triggerRedirectToBaseline() {
+      const area = document.getElementById('redirectArea');
+      area.innerHTML = '<div class="redirect-banner">All assessments complete — preparing your Baseline profile. Redirecting in 5 seconds...</div>';
+      let t = 5;
+      const interval = setInterval(() => {
+        t--;
+        if (t > 0) {
+          area.querySelector('.redirect-banner').textContent = `All assessments complete — preparing your Baseline profile. Redirecting in ${t} seconds...`;
+        } else {
+          clearInterval(interval);
+          window.location.href = 'baseline_confirmation.html';
+        }
+      }, 1000);
+    }
+
+    // Utility to interpret backend values robustly
+    function isCompletedFlag(value) {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'boolean') return !!value;
+      const s = String(value).trim().toLowerCase();
+      if (!s) return false;
+      // treat these as completed
+      if (s.includes('done') || s.includes('complete') || s === 'yes' || s === 'true' || s.includes('completed')) return true;
+      return false;
+    }
+
+    // Fetch assessment status from backend and update UI. If both done -> redirect after 5s
+    async function loadAssessmentStatus() {
+      try {
+        // short-circuit if local flags already indicate both done
+        if (localFlagsBothDone()) {
+          setMatchShapesCompleteUI();
+          setBehaviorCompleteUI();
+          triggerRedirectToBaseline();
+          return;
+        }
+
+        const token = getAuthToken();
+        const headers = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch(`${baseURL}/assessment-status/${userId}`, { headers });
+        if (!res.ok) {
+          if (res.status === 401 || res.status === 403) {
+            removeStoredItem('user');
+            window.location.href = 'signin.html';
+            return;
+          }
+          throw new Error('Failed to fetch progress');
+        }
+
+        let data = null;
+        try { data = await res.json(); } catch(e) { data = null; }
+
+        // backend may return fields like "shape_game": "Done"/"Inprogress", or "match_shapes": etc.
+        const shapeRaw = data && (data.shape_game ?? data.match_shapes ?? data.shapeGame ?? data.shape_game_status);
+        const behaviorRaw = data && (data.behavior_checklist ?? data.behavior ?? data.behavior_checklist_status);
+
+        const shapeDone = isCompletedFlag(shapeRaw);
+        const behaviorDone = isCompletedFlag(behaviorRaw) || Boolean(data && data.behavior_submitted); // fallback
+
+        if (shapeDone) setMatchShapesCompleteUI(); else setMatchShapesInProgressUI();
+        if (behaviorDone) setBehaviorCompleteUI(); else setBehaviorInProgressUI();
+
+        // If backend says both done -> set local flags and redirect
+        if (shapeDone && behaviorDone) {
+          try {
+            localStorage.setItem('matchShapesCompleted','true');
+            localStorage.setItem('behaviorChecklistCompleted','true');
+          } catch (e) {
+            // ignore storage errors (e.g. private mode)
+          }
+          triggerRedirectToBaseline();
+        } else {
+          // update partial local flag for whichever is done
+          try {
+            if (shapeDone) localStorage.setItem('matchShapesCompleted','true');
+            if (behaviorDone) localStorage.setItem('behaviorChecklistCompleted','true');
+          } catch(e){}
+        }
+
+      } catch (err) {
+        console.error("Error fetching assessment:", err);
+        // fallback UI
+        setMatchShapesInProgressUI();
+        setBehaviorInProgressUI();
+        // also check local flags
+        if (localFlagsBothDone()) {
+          triggerRedirectToBaseline();
+        }
+      }
+    }
+
+    window.addEventListener("load", loadAssessmentStatus);
+  </script>
+</body>
+</html>

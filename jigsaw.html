@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NeuroHue Jigsaw (3×3)</title>
+
+  <!-- ROUTINE topbar / sidebar styles (keeps layout identical) -->
+  <style>
+  :root{
+    --teal:#268ea6;
+    --dark:#093c44;
+    --card-bg:#ffffff;
+    --muted:#f3f6f7;
+    --accent:#0b5670;
+    --bg:#f6f8fa;
+    --success:#1f8a3d;
+    --danger:#c0392b;
+    --shadow: 0 4px 18px rgba(11,86,112,0.06);
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: "Arial",sans-serif;
+    background:#f5f7fa;
+    color:#08343a;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* Topbar (same style as dashboard) */
+  .topbar{
+    height:64px;
+    background:var(--teal);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 18px;
+    color:#fff;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  .brand {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+  }
+  .brand img{ height:34px; width:34px; border-radius:6px; object-fit:cover }
+  .brand .title { font-size:18px; }
+
+  .topbar-right {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    position:relative;
+  }
+
+  .plan-badge{
+    background:#fff3cf;
+    color:#7a5a10;
+    padding:6px 10px;
+    border-radius:10px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+
+  .profile {
+    background: #0b2b2b;
+    color: #fff;
+    padding:6px 10px;
+    border-radius:22px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    cursor:pointer;
+    position:relative;
+  }
+  .profile .avatar {
+    width:34px;height:34px;border-radius:50%;background:#fff;color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700;
+  }
+  .profile .name { font-weight:700; font-size:14px; }
+
+  /* layout */
+  .page {
+    display:flex;
+    height: calc(100vh - 64px);
+  }
+
+  /* sidebar */
+  .sidebar {
+    width:280px;
+    background: #f9fbfc;
+    border-right:1px solid #ebeff0;
+    padding:18px;
+    transform: translateX(-320px);
+    transition: transform .22s ease;
+    position:relative;
+    z-index:30;
+  }
+  .sidebar.open { transform: translateX(0); box-shadow: 2px 0 14px rgba(0,0,0,0.05); }
+
+  .nav-section { margin-top:6px; }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    color:#08343a;
+    margin-bottom:6px;
+  }
+  .nav-item:hover{ background: #eef6f7; }
+
+  .hamburger{
+    width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:22px;
+  }
+
+  /* main content */
+  .content {
+    flex:1;
+    padding:24px;
+    overflow:auto;
+    background: var(--bg);
+  }
+
+  .page-title {
+    text-align:left;
+    color:var(--dark);
+    font-weight:800;
+    font-size:22px;
+    margin-top:6px;
+    margin-bottom:12px;
+  }
+
+  /* profile menu */
+  .profile-menu{
+    position:absolute;
+    right:18px;
+    top:64px;
+    background:#fff;
+    border:1px solid #e6eef0;
+    border-radius:8px;
+    min-width:180px;
+    box-shadow:0 6px 20px rgba(8,52,54,0.08);
+    display:none;
+    z-index:40;
+  }
+  .profile-menu.open{ display:block; }
+  .profile-menu button{
+    width:100%;
+    border:none;
+    background:transparent;
+    padding:10px 12px;
+    text-align:left;
+    cursor:pointer;
+  }
+  .profile-menu button:hover{ background:#f2f8f9; }
+
+  .sublist { padding-left:6px; margin-top:6px; display:none; }
+  .sublist.open { display:block; }
+  .sublist .subitem {
+    display:block;
+    padding:8px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:14px;
+    color:#2b4d50;
+    text-decoration:none;
+  }
+  .sublist .subitem:hover { background:#eef6f7; }
+  .sublist .subitem:focus { outline:2px solid #bfeef7; }
+
+  @media (max-width:900px){
+    .sidebar{ position:absolute; height:100%; left:0; top:64px; }
+    .content{ padding:20px; }
+  }
+  </style>
+
+  <!-- JIGSAW specific styles (kept and merged) -->
+  <style>
+    /* small overrides and jigsaw UI */
+    :root{
+      --muted-j: #cfd8dc;
+    }
+    *{box-sizing:border-box}
+    /* adjust content container background slightly */
+    main.jigsaw-main { padding: 12px 0 48px; }
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    label{font-size:13px}
+    select,input,button{padding:8px 10px;border-radius:8px;border:1px solid var(--muted-j);background:#fff;font-size:14px}
+    button{cursor:pointer}
+    button:disabled{opacity:.6;cursor:not-allowed}
+    #board{display:grid;gap:10px;max-width:720px;width:100%;grid-template-columns:repeat(3,1fr);margin:12px auto}
+    .slot{background:var(--card-bg);border:1px dashed var(--muted-j);min-height:120px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);overflow:hidden;position:relative}
+    .slot:focus{outline:3px solid rgba(11,86,112,0.12);outline-offset:3px}
+    .tray{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px;max-width:980px;margin-left:auto;margin-right:auto;padding:8px}
+    .piece{width:120px;height:120px;border-radius:8px;overflow:hidden;cursor:grab;box-shadow:var(--shadow);border:1px solid #eee;display:flex;align-items:center;justify-content:center;background:#fff}
+    .piece:active{cursor:grabbing}
+    img.pimg{width:100%;height:100%;object-fit:cover;display:block}
+    .status{max-width:980px;margin:12px auto;font-weight:600;color:#0b3b3e;text-align:center}
+    .meta{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:8px}
+    .meta .badge{background:#fff;padding:6px 10px;border-radius:999px;border:1px solid var(--muted-j);font-weight:600}
+    .small{padding:6px 8px;font-size:13px}
+    @media(max-width:880px){
+      .piece{width:96px;height:96px}
+      .slot{min-height:96px}
+    }
+    @media(max-width:460px){
+      .piece{width:72px;height:72px}
+      .slot{min-height:72px}
+    }
+    .slot .placed{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:8px}
+    .hint{font-size:13px;color:#555}
+  </style>
+</head>
+<body>
+  <!-- Topbar (copied from routine.html) -->
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:14px">
+      <button id="hamburger" class="hamburger" title="Menu" aria-label="Open menu">☰</button>
+      <div class="brand">
+        <img src="logo.png" alt="logo" />
+        <div class="title">NeuroHue</div>
+      </div>
+    </div>
+
+    <div class="topbar-right" style="position:relative">
+      <div class="plan-badge" id="planBadge">⭐ Premium Plan</div>
+
+      <div id="profileBtn" class="profile" title="Account" aria-haspopup="true" aria-expanded="false">
+        <div class="avatar" id="avatar"></div>
+        <div class="name" id="topUsername">User</div>
+      </div>
+
+      <!-- small profile dropdown -->
+      <div id="profileMenu" class="profile-menu" aria-hidden="true">
+        <button id="viewProfileBtn">View Profile</button>
+        <button id="goToAssess">Initial Assessment</button>
+        <button id="logoutBtn">Log Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="page">
+    <!-- Sidebar (copied) -->
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <strong style="font-size:14px">Menu</strong>
+        <small style="color:#6b8e90">User Actions</small>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-item" id="navDashboard" role="button" tabindex="0" title="Go to Dashboard">
+          <div>Dashboard</div>
+          <div style="font-size:13px;color:#6b8e90">⤴</div>
+        </div>
+
+        <div class="nav-item" id="navRoutine" role="button" tabindex="0" title="Go to Routines">
+          <div>Routine</div>
+          <div style="font-size:13px;color:#6b8e90">⤴</div>
+        </div>
+
+        <div class="nav-item" id="activityToggle" role="button" aria-expanded="false" tabindex="0">
+          <div>Activity</div>
+          <div id="activityToggleIcon" style="font-size:13px;color:#6b8e90">▸</div>
+        </div>
+
+        <div id="activitySub" class="sublist" aria-hidden="true" role="menu">
+          <a class="subitem" data-activity="gross" href="gross.html" role="menuitem" tabindex="-1">Gross Motor Skills</a>
+          <a class="subitem" data-activity="fine" href="fine.html" role="menuitem" tabindex="-1">Fine Motor Skills</a>
+          <a class="subitem" data-activity="speech" href="speech.html" role="menuitem" tabindex="-1">Speech &amp; Learning</a>
+          <a class="subitem" data-activity="cognitive" href="cognitive.html" role="menuitem" tabindex="-1">Cognitive &amp; Learning</a>
+          <a class="subitem" data-activity="behavior" href="behavior.html" role="menuitem" tabindex="-1">Behavior &amp; Social Skills</a>
+        </div>
+      </div>
+
+      <hr style="margin:14px 0;border:none;border-top:1px solid #eef4f5" />
+      <div style="font-size:13px;color:#5f7a7c">Quick Links</div>
+      <div style="height:8px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">Progress</button>
+        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">Reports</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT: jigsaw inside the content area -->
+    <main class="content" role="main">
+      <div class="page-title">NeuroHue Jigsaw (3×3)</div>
+
+      <section class="jigsaw-main">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+          <div class="controls" role="region" aria-label="controls">
+            <label for="levelSelect">Level:</label>
+            <select id="levelSelect" aria-label="Select level">
+              <option value="1">Level 1</option>
+              <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
+            </select>
+            <button id="loadBtn" class="small">Load</button>
+            <button id="shuffleBtn" class="small">Shuffle</button>
+            <button id="resetBtn" class="small">Reset</button>
+            <button id="checkBtn" class="small">Check</button>
+            <button id="solveBtn" class="small">Show Solution</button>
+          </div>
+          <div style="font-size:13px;color:#6b8e90">Tip: drag tiles into slots or tap to place (mobile friendly)</div>
+        </div>
+
+        <div id="board" role="grid" aria-label="Puzzle board"></div>
+
+        <div id="tray" class="tray" aria-label="Tile tray" tabindex="0"></div>
+
+        <div class="meta" aria-live="polite">
+          <div class="badge" id="timer">Time: 00:00</div>
+          <div class="badge" id="placedCount">Placed: 0/9</div>
+          <div class="badge" id="lastResult">Status: ready</div>
+        </div>
+
+        <div id="status" class="status">Choose a level and click <strong>Load</strong>.</div>
+        <div class="status hint">Tip: drag tiles into slots, or tap a tile then tap a slot (mobile-friendly). Click a placed tile to remove it.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Minimal jigsaw + header/sidebar interactivity script -->
+  <script>
+  // ---------- API origin detection (keeps original jigsaw logic) ----------
+  const DEFAULT_BACKEND = "http://127.0.0.1:8000";
+  function qp(name) {
+    try { return new URLSearchParams(window.location.search).get(name); } catch(e){ return null; }
+  }
+  let API_ORIGIN = (function(){
+    const fromQuery = qp('api_origin');
+    if (fromQuery) return fromQuery.replace(/\/+$/, '');
+    if (window.location && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) return window.location.origin;
+    return DEFAULT_BACKEND;
+  })();
+  console.log("Using API_ORIGIN =", API_ORIGIN);
+
+  // ---------- small header/sidebar shared helpers ----------
+  function $(id){ return document.getElementById(id); }
+
+  function loadStoredUser() {
+    const raw = localStorage.getItem('user') ?? sessionStorage.getItem('user')
+             ?? localStorage.getItem('currentUser') ?? sessionStorage.getItem('currentUser')
+             ?? localStorage.getItem('current_user') ?? sessionStorage.getItem('current_user');
+    if (!raw) {
+      const uname = localStorage.getItem('username') ?? sessionStorage.getItem('username');
+      const uid = localStorage.getItem('user_id') ?? sessionStorage.getItem('user_id');
+      return { id: uid || null, username: uname || null, raw: null };
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      const userObj = parsed.user ?? parsed;
+      const id = userObj.id ?? userObj.user_id ?? parsed.user_id ?? parsed.id ?? null;
+      const username = userObj.username ?? userObj.name ?? parsed.username ?? parsed.email ?? null;
+      return { id: id, username: username, raw: parsed };
+    } catch (e) {
+      return { id: null, username: raw, raw: raw };
+    }
+  }
+
+  const stored = loadStoredUser();
+  const username = stored.username || localStorage.getItem('username') || sessionStorage.getItem('username') || 'User';
+  const displayName = username || 'User';
+  try { $('topUsername').textContent = displayName; } catch(e){}
+  try { $('avatar').textContent = (displayName.charAt(0) || 'U').toUpperCase(); } catch(e){}
+
+  // Sidebar toggle
+  const hamburger = $('hamburger');
+  const sidebar = $('sidebar');
+  let sidebarOpen = false;
+  function setSidebarOpen(open){
+    sidebarOpen = !!open;
+    if (sidebar) sidebar.classList.toggle('open', sidebarOpen);
+    if (sidebar) sidebar.setAttribute('aria-hidden', String(!sidebarOpen));
+  }
+  if (hamburger) hamburger.addEventListener('click', ()=> setSidebarOpen(!sidebarOpen));
+  if (window.innerWidth > 900) setSidebarOpen(true);
+  else setSidebarOpen(false);
+
+  // Profile dropdown
+  const profileBtn = $('profileBtn');
+  const profileMenu = $('profileMenu');
+  let profileOpen = false;
+  if (profileBtn) {
+    profileBtn.addEventListener('click', (e) => {
+      profileOpen = !profileOpen;
+      if (profileMenu) profileMenu.classList.toggle('open', profileOpen);
+      if (profileMenu) profileMenu.setAttribute('aria-hidden', String(!profileOpen));
+      profileBtn.setAttribute('aria-expanded', String(profileOpen));
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (!profileBtn || !profileMenu) return;
+    if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+      profileOpen = false;
+      profileMenu.classList.remove('open');
+      profileMenu.setAttribute('aria-hidden', 'true');
+      profileBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Activity toggle
+  const activityToggle = $('activityToggle');
+  const activitySub = $('activitySub');
+  const activityToggleIcon = $('activityToggleIcon');
+  let activityOpen = false;
+  if (activityToggle) {
+    activityToggle.addEventListener('click', () => {
+      activityOpen = !activityOpen;
+      if (activitySub) activitySub.classList.toggle('open', activityOpen);
+      activityToggle.setAttribute('aria-expanded', String(activityOpen));
+      if (activityToggleIcon) activityToggleIcon.textContent = activityOpen ? '▾' : '▸';
+      if (activitySub) activitySub.querySelectorAll('.subitem').forEach(a => a.tabIndex = activityOpen ? 0 : -1);
+      if (activityOpen) {
+        const first = activitySub.querySelector('.subitem');
+        if (first) first.focus();
+      } else {
+        activityToggle.focus();
+      }
+    });
+
+    activityToggle.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.code === 'Space') {
+        e.preventDefault();
+        activityToggle.click();
+      }
+    });
+  }
+  // Make subitems tab-focusable only when submenu is open initially (they are -1 by default)
+  document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
+
+  // Logout simple handler
+  $('logoutBtn')?.addEventListener('click', ()=> {
+    ['user','currentUser','current_user','username','user_id','userId','userid','authToken','token','planName'].forEach(k=>{
+      try{ localStorage.removeItem(k); }catch(e){}
+      try{ sessionStorage.removeItem(k); }catch(e){}
+    });
+    window.location.href = 'signin.html';
+  });
+  $('viewProfileBtn')?.addEventListener('click', ()=>{ window.location.href = 'profile.html'; });
+  $('goToAssess')?.addEventListener('click', ()=>{ window.location.href = 'initial_progress_assessment.html'; });
+
+  // optional plan badge
+  const storedPlan = localStorage.getItem('planName') ?? sessionStorage.getItem('planName');
+  if (storedPlan) try { $('planBadge').textContent = storedPlan; } catch(e){}
+
+  // ---------- jigsaw UI logic (keeps original functionality) ----------
+  let tiles = [];                       // { id, data }
+  let boardOrder = Array(9).fill(null); // slotIndex -> tileId
+  let startTime = null;
+  let timerInterval = null;
+
+  const boardEl = document.getElementById('board');
+  const trayEl = document.getElementById('tray');
+  const statusEl = document.getElementById('status');
+  const timerEl = document.getElementById('timer');
+  const placedCountEl = document.getElementById('placedCount');
+  const lastResultEl = document.getElementById('lastResult');
+
+  function createBoardUI(){
+    if (!boardEl) return;
+    boardEl.innerHTML = '';
+    for(let i=0;i<9;i++){
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.dataset.index = i;
+      slot.tabIndex = 0;
+      slot.setAttribute('role','gridcell');
+      slot.setAttribute('aria-label', `Slot ${i+1}`);
+      slot.addEventListener('dragover', e => e.preventDefault());
+      slot.addEventListener('drop', onDrop);
+      slot.addEventListener('click', onSlotClick);
+      slot.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSlotClick({currentTarget: slot}); }
+        if (e.key === 'Backspace' || e.key === 'Delete') { clearSlot(slot); }
+      });
+      boardEl.appendChild(slot);
+    }
+  }
+
+  function renderTray(){
+    if (!trayEl) return;
+    trayEl.innerHTML = '';
+    const placedSet = new Set(boardOrder.filter(x => x !== null));
+    tiles.forEach(t => {
+      if (placedSet.has(t.id)) return;
+      const w = document.createElement('div');
+      w.className = 'piece';
+      w.draggable = true;
+      w.dataset.id = t.id;
+      w.tabIndex = 0;
+      w.setAttribute('role','button');
+      w.setAttribute('aria-pressed','false');
+      w.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', String(t.id)));
+      w.addEventListener('click', () => {
+        const prev = trayEl.querySelector('[aria-pressed="true"]');
+        if (prev) prev.setAttribute('aria-pressed','false');
+        const isSelected = w.getAttribute('aria-pressed') === 'true';
+        w.setAttribute('aria-pressed', String(!isSelected));
+      });
+      w.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          w.click();
+        }
+      });
+      w.innerHTML = `<img class="pimg" src="${t.data}" alt="piece-${t.id}">`;
+      trayEl.appendChild(w);
+    });
+    updatePlacedCount();
+  }
+
+  function renderBoard(){
+    if (!boardEl) return;
+    const slots = boardEl.querySelectorAll('.slot');
+    slots.forEach((s, i) => {
+      s.innerHTML = '';
+      const tid = boardOrder[i];
+      if (tid !== null && typeof tid !== 'undefined'){
+        const tile = tiles.find(x => x.id === tid);
+        if (tile){
+          const wrapper = document.createElement('div');
+          wrapper.className = 'placed';
+          wrapper.draggable = true;
+          wrapper.dataset.id = tile.id;
+          wrapper.tabIndex = 0;
+          wrapper.setAttribute('role','button');
+          wrapper.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', String(tile.id)));
+          wrapper.addEventListener('click', () => {
+            boardOrder[i] = null;
+            renderBoard();
+          });
+          wrapper.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              wrapper.click();
+            }
+          });
+          wrapper.innerHTML = `<img class="pimg" src="${tile.data}" alt="tile-${tile.id}">`;
+          s.appendChild(wrapper);
+        }
+      }
+    });
+    renderTray();
+  }
+
+  function onDrop(e){
+    e.preventDefault();
+    const slot = e.currentTarget;
+    const idx = Number(slot.dataset.index);
+    const tileIdRaw = e.dataTransfer.getData('text/plain');
+    if (!tileIdRaw) return;
+    const tileId = parseInt(tileIdRaw, 10);
+    placeTileInSlot(tileId, idx);
+  }
+
+  function onSlotClick(ev){
+    const slot = ev.currentTarget;
+    const idx = Number(slot.dataset.index);
+    const selected = trayEl.querySelector('[aria-pressed="true"]');
+    if (selected){
+      const tileId = parseInt(selected.dataset.id, 10);
+      placeTileInSlot(tileId, idx);
+      selected.setAttribute('aria-pressed','false');
+      return;
+    }
+    if (boardOrder[idx] !== null){
+      boardOrder[idx] = null;
+      renderBoard();
+    }
+  }
+
+  function clearSlot(slot){
+    const idx = Number(slot.dataset.index);
+    if (!isNaN(idx)) {
+      boardOrder[idx] = null;
+      renderBoard();
+    }
+  }
+
+  function placeTileInSlot(tileId, slotIndex){
+    if (!tiles.find(t => t.id === tileId)) return;
+    const prev = boardOrder.indexOf(tileId);
+    if (prev !== -1) boardOrder[prev] = null;
+    boardOrder[slotIndex] = tileId;
+    renderBoard();
+  }
+
+  async function fetchJsonOrThrow(url, opts = {}) {
+    try {
+      const resp = await fetch(url, opts);
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error(`HTTP ${resp.status} ${resp.statusText} ${text}`);
+      }
+      return await resp.json();
+    } catch (err) {
+      throw new Error(err.message || String(err));
+    }
+  }
+
+  async function loadTiles(level, seedSolution=false){
+    stopTimer();
+    startTimer();
+    if (statusEl) statusEl.textContent = 'Loading tiles...';
+    if (lastResultEl) lastResultEl.textContent = 'Status: loading';
+    try {
+      const url = `${API_ORIGIN}/api/jigsaw/tiles?level=${encodeURIComponent(level)}${seedSolution ? '&seed=solution' : ''}`;
+      const data = await fetchJsonOrThrow(url);
+      tiles = Array.isArray(data.tiles) ? data.tiles.map(t => ({ id: t.id, data: t.data })) : [];
+      boardOrder = Array(9).fill(null);
+      renderBoard();
+      if (statusEl) statusEl.textContent = `Loaded level ${level}. Drag or tap tiles to place them.`;
+      if (lastResultEl) lastResultEl.textContent = 'Status: ready';
+    } catch (err){
+      console.error('loadTiles error', err);
+      if (statusEl) statusEl.textContent = 'Error loading tiles: ' + (err.message || err);
+      if (lastResultEl) lastResultEl.textContent = 'Status: error';
+    }
+  }
+
+  function shuffleTray(){
+    const placedSet = new Set(boardOrder.filter(x => x !== null));
+    const unplaced = tiles.filter(t => !placedSet.has(t.id));
+    for (let i = unplaced.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [unplaced[i], unplaced[j]] = [unplaced[j], unplaced[i]];
+    }
+    const placedTiles = tiles.filter(t => placedSet.has(t.id));
+    tiles = placedTiles.concat(unplaced);
+    renderBoard();
+    if (statusEl) statusEl.textContent = 'Shuffled tray.';
+  }
+
+  function resetPuzzle(){
+    boardOrder = Array(9).fill(null);
+    const prev = trayEl.querySelector('[aria-pressed="true"]');
+    if (prev) prev.setAttribute('aria-pressed','false');
+    renderBoard();
+    stopTimer();
+    startTimer();
+    if (statusEl) statusEl.textContent = 'Reset puzzle.';
+    if (lastResultEl) lastResultEl.textContent = 'Status: reset';
+  }
+
+  async function showSolution(level){
+    if (statusEl) statusEl.textContent = 'Placing solution...';
+    try {
+      const url = `${API_ORIGIN}/api/jigsaw/tiles?level=${encodeURIComponent(level)}&seed=solution`;
+      const data = await fetchJsonOrThrow(url);
+      tiles = Array.isArray(data.tiles) ? data.tiles.map(t => ({ id: t.id, data: t.data })) : [];
+      boardOrder = Array(9).fill(null);
+      tiles.forEach(t => {
+        if (typeof t.id === 'number' && t.id >= 0 && t.id < 9) boardOrder[t.id] = t.id;
+      });
+      renderBoard();
+      if (statusEl) statusEl.textContent = 'Solution placed.';
+      if (lastResultEl) lastResultEl.textContent = 'Status: solution';
+      stopTimer();
+    } catch (err){
+      console.error('showSolution error', err);
+      if (statusEl) statusEl.textContent = 'Error placing solution: ' + (err.message || err);
+      if (lastResultEl) lastResultEl.textContent = 'Status: error';
+    }
+  }
+
+  async function checkArrangement(){
+    const level = Number(document.getElementById('levelSelect').value);
+    if (statusEl) statusEl.textContent = 'Checking...';
+    if (lastResultEl) lastResultEl.textContent = 'Status: checking';
+    try {
+      const payload = { level: level, arrangement: boardOrder.slice(), user_id: null };
+      const resp = await fetch(`${API_ORIGIN}/api/jigsaw/check`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const text = await resp.text().catch(()=>null);
+        throw new Error(`HTTP ${resp.status} ${resp.statusText} ${text || ''}`);
+      }
+      const json = await resp.json();
+      const { correct, total, percent, completed } = json;
+      if (lastResultEl) lastResultEl.textContent = `Status: ${completed ? 'Completed' : 'Incomplete'}`;
+      if (statusEl) statusEl.textContent = `Score: ${percent}% — ${correct}/${total} correct. ${completed ? 'Completed' : 'Incomplete'}`;
+      if (completed) {
+        stopTimer();
+        placedCountEl.textContent = `Placed: ${correct}/${total}`;
+      }
+    } catch (err){
+      console.error('checkArrangement error', err);
+      if (statusEl) statusEl.textContent = 'Check failed: ' + (err.message || err);
+      if (lastResultEl) lastResultEl.textContent = 'Status: error';
+    }
+  }
+
+  function updatePlacedCount(){
+    const placed = boardOrder.filter(x => x !== null).length;
+    if (placedCountEl) placedCountEl.textContent = `Placed: ${placed}/9`;
+  }
+
+  function startTimer(){
+    if (timerInterval) clearInterval(timerInterval);
+    startTime = Date.now();
+    timerInterval = setInterval(() => {
+      const diff = Date.now() - startTime;
+      const totalSec = Math.floor(diff / 1000);
+      const mm = String(Math.floor(totalSec / 60)).padStart(2,'0');
+      const ss = String(totalSec % 60).padStart(2,'0');
+      if (timerEl) timerEl.textContent = `Time: ${mm}:${ss}`;
+    }, 500);
+  }
+
+  function stopTimer(){
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function init(){
+    createBoardUI();
+    renderBoard();
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      const level = document.getElementById('levelSelect').value;
+      loadTiles(level, false);
+    });
+    document.getElementById('shuffleBtn').addEventListener('click', () => shuffleTray());
+    document.getElementById('resetBtn').addEventListener('click', () => resetPuzzle());
+    document.getElementById('checkBtn').addEventListener('click', () => checkArrangement());
+    document.getElementById('solveBtn').addEventListener('click', () => {
+      const level = document.getElementById('levelSelect').value;
+      showSolution(level);
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
+      if (e.key.toLowerCase() === 'l') document.getElementById('loadBtn').click();
+      if (e.key.toLowerCase() === 's') document.getElementById('checkBtn').click();
+      if (e.key.toLowerCase() === 'r') document.getElementById('resetBtn').click();
+    });
+
+    const observer = new MutationObserver(() => updatePlacedCount());
+    if (boardEl) observer.observe(boardEl, { childList:true, subtree:true });
+
+    if (statusEl) statusEl.textContent = 'Ready. Choose a level and click Load.';
+  }
+
+  function ensureBoardShape(){
+    if (!Array.isArray(boardOrder) || boardOrder.length !== 9) boardOrder = Array(9).fill(null);
+  }
+
+  ensureBoardShape();
+  init();
+
+  // keep sidebar open state on load (match routine behavior)
+  window.addEventListener('DOMContentLoaded', ()=>{
+    if (window.innerWidth > 900) setSidebarOpen(true);
+    else setSidebarOpen(false);
+  });
+
+   // ROUTINE nav: single entry that goes to routine page
+  const navDashboard = $('navDashboard');
+  if (navDashboard) {
+    navDashboard.addEventListener('click', ()=> {
+      window.location.href = 'dashboard.html';
+    });
+  }
+
+
+  // ROUTINE nav: single entry that goes to routine page
+  const navRoutine = $('navRoutine');
+  if (navRoutine) {
+    navRoutine.addEventListener('click', ()=> {
+      window.location.href = 'routine.html';
+    });
+  }
+  </script>
+</body>
+</html>
