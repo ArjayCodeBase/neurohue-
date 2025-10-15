@@ -25,6 +25,8 @@ from pathlib import Path
 from fastapi import status
 from fastapi.responses import RedirectResponse
 import html as _html
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import HTTPException
 
 # =====================================
 # APP + STATIC SETUP
@@ -1560,3 +1562,40 @@ def serve_index():
     </body></html>
     """
     return HTMLResponse(msg, status_code=404)
+
+@app.get("/debug/root-list", include_in_schema=False)
+def debug_root_list():
+    try:
+        root = Path(".").resolve()
+        items = []
+        for p in sorted(root.iterdir()):
+            if p.is_file():
+                items.append(p.name)
+        if not items:
+            return PlainTextResponse("No files found in project root.")
+        return PlainTextResponse("Files in project root:\n" + "\n".join(items))
+    except Exception as e:
+        return PlainTextResponse(f"Error reading project root: {e}", status_code=500)
+
+@app.get("/{filename}", include_in_schema=False)
+def serve_root_assets(filename: str):
+    # only serve names that contain an extension (avoid catching API endpoints)
+    if "." not in filename:
+        raise HTTPException(status_code=404)
+
+    allowed_ext = {".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".css", ".js", ".html", ".txt"}
+    ext = Path(filename).suffix.lower()
+    if ext not in allowed_ext:
+        raise HTTPException(status_code=404)
+
+    # prefer file in project root
+    root_file = Path(filename)
+    if root_file.exists() and root_file.is_file():
+        return FileResponse(str(root_file))
+
+    # fallback to static/<filename>
+    static_file = STATIC_DIR / filename
+    if static_file.exists() and static_file.is_file():
+        return FileResponse(str(static_file))
+
+    raise HTTPException(status_code=404, detail=f"{filename} not found in project root or static/")
