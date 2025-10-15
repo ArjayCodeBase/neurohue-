@@ -5,32 +5,37 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Memory Flip | NeuroHue</title>
 <style>
-  :root{ --teal:#268ea6; --dark:#093c44; --accent:#0e7fa8; --muted:#f3f6f7; }
+  :root{ --teal:#268ea6; --dark:#093c44; --accent:#0e7fa8; --muted:#f3f6f7; --card-shadow: 0 4px 10px rgba(8,52,54,0.06);}
   *{box-sizing:border-box}
   body{ margin:0; font-family:Arial, Helvetica, sans-serif; background:#ffffff; color:#08343a; min-height:100vh; }
 
-  /* Topbar (from dashboard) */
+  /* Topbar */
   .topbar{
     height:64px;
     background:var(--teal);
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:0 18px;
+    padding:0 14px;
     color:#fff;
     box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    position:sticky;
+    top:0;
+    z-index:60;
   }
   .brand { display:flex; align-items:center; gap:10px; font-weight:700; }
   .brand img{ height:34px; width:34px; border-radius:6px; object-fit:cover }
-  .brand .title { font-size:18px; }
+  .brand .title { font-size:18px; white-space:nowrap; }
   .topbar-right { display:flex; align-items:center; gap:12px; }
-  .plan-badge{ background:#fff3cf; color:#7a5a10; padding:6px 10px; border-radius:10px; font-size:13px; display:flex; align-items:center; gap:6px; }
-  .profile { background: #0b2b2b; color: #fff; padding:6px 10px; border-radius:22px; display:flex; align-items:center; gap:10px; cursor:pointer; position:relative; }
+
+  .plan-badge{ background:#fff3cf; color:#7a5a10; padding:6px 10px; border-radius:10px; font-size:13px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .profile { background: #0b2b2b; color: #fff; padding:6px 10px; border-radius:22px; display:flex; align-items:center; gap:10px; cursor:pointer; position:relative; min-width:48px; }
   .profile .avatar { width:34px;height:34px;border-radius:50%;background:#fff;color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700; }
-  .profile .name { font-weight:700; font-size:14px; color: #fff; }
+  .profile .name { font-weight:700; font-size:14px; color: #fff; white-space:nowrap; }
 
   /* layout */
-  .page { display:flex; height: calc(100vh - 64px); }
+  .page { display:flex; gap:0; min-height: calc(100vh - 64px); }
+  /* Sidebar */
   .sidebar {
     width:280px;
     background: #f9fbfc;
@@ -40,13 +45,15 @@
     transition: transform .22s ease;
     position:relative;
     z-index:30;
+    flex-shrink:0;
   }
   .sidebar.open { transform: translateX(0); box-shadow: 2px 0 14px rgba(0,0,0,0.05); }
   .nav-section { margin-top:6px; }
   .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; cursor:pointer; color:#08343a; margin-bottom:6px; }
   .nav-item:hover{ background: #eef6f7; }
-  .hamburger{ width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:22px; }
-  .content { flex:1; padding:32px; overflow:auto; }
+  .hamburger{ width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:20px; }
+
+  .content { flex:1; padding:24px 28px; overflow:auto; min-width:0; } /* min-width:0 to let flex child shrink on mobile */
   .page-title { text-align:center; color:var(--dark); font-weight:800; font-size:28px; margin-top:6px; margin-bottom:18px; }
 
   /* profile dropdown */
@@ -64,37 +71,36 @@
 
   /* Memory Flip styles */
   .levels-grid {
-    display:flex;
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap:20px;
-    justify-content:center;
-    align-items:flex-start;
+    justify-items:center;
+    align-items:start;
     margin: 12px 0 32px 0;
-    flex-wrap:wrap;
+    width:100%;
   }
   .level-card {
-    width:200px;
+    max-width: 320px;
+    width: 100%;
     background:#fff;
     border-radius:12px;
-    padding:18px;
-    box-shadow:0 4px 10px rgba(8,52,54,0.06);
+    padding:16px;
+    box-shadow: var(--card-shadow);
     text-align:center;
     border:1px solid #e6eef0;
   }
-  .level-name { font-weight:700; margin-bottom:12px; }
+  .level-name { font-weight:700; margin-bottom:12px; font-size:16px; text-transform:capitalize; }
   .card-thumb { width:84px; height:84px; margin:0 auto 10px; border-radius:10px; background:#f4f6f7; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #eee; }
   .card-thumb img { width:64px; height:64px; object-fit:contain; display:block; }
   .card-title { font-weight:700; margin:8px 0 6px; }
-  .start-btn { display:inline-block; padding:6px 14px; border-radius:16px; background:var(--accent); color:#fff; border:none; cursor:pointer; margin-top:6px; }
+  .start-btn { display:inline-block; padding:8px 16px; border-radius:16px; background:var(--accent); color:#fff; border:none; cursor:pointer; margin-top:6px; font-size:14px; }
   .score-line { margin-top:10px; font-size:13px; color:#2b4d50; }
   .status-label { font-weight:700; margin-top:6px; font-size:13px; display:block; }
   .status-complete { color:#2ea84b; }
   .status-incomplete { color:#d43b3b; }
 
   .game-area{ margin-top:30px; text-align:center; }
-  .board{ display:grid; gap:12px; justify-content:center; align-content:start; margin:0 auto; }
-  .grid-4{ grid-template-columns: repeat(4, 88px); }
-  .grid-6{ grid-template-columns: repeat(4, 88px); }
-  .grid-8{ grid-template-columns: repeat(4, 88px); }
+  .board{ display:grid; gap:12px; justify-content:center; align-content:start; margin:0 auto; width:100%; max-width:760px; grid-template-columns: repeat(auto-fill, minmax(72px, 88px)); justify-items:center; }
 
   .card {
     width:88px; height:110px; perspective:800px; cursor:pointer; position:relative;
@@ -118,24 +124,65 @@
 
   .done-panel{ text-align:center; padding:18px; border-radius:10px; background:#f7fff6; border:1px solid #e1f6e6; display:inline-block; margin-top:12px; }
 
-  @media (max-width:740px){
+  /* backdrop for mobile sidebar */
+  #backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.28); display:none; z-index:29; transition:opacity .18s; opacity:0; }
+  #backdrop.show { display:block; opacity:1; }
+
+  /* responsiveness tweaks */
+  @media (max-width:1024px){
+    .topbar { padding: 0 12px; }
+    .content { padding:20px; }
+    .sidebar { width: 260px; }
+  }
+
+  @media (max-width:900px){
+    /* sidebar becomes off-canvas fixed panel */
+    .sidebar {
+      position: fixed;
+      top:64px;
+      left:0;
+      height: calc(100vh - 64px);
+      transform: translateX(-320px);
+      width: 260px;
+      overflow:auto;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .page { min-height: auto; }
+    .content { padding:18px; }
+    .brand .title { display:none; } /* save space */
+    .plan-badge { display:none; } /* optional hide on small */
     .levels-grid { gap:12px; }
-    .level-card { width:160px; padding:14px; }
+    .level-card { padding:12px; }
+    .card { width:72px; height:92px; }
+    .card-face img{ width:56px; height:56px; }
+    .hamburger{ display:inline-flex; }
+  }
+
+  @media (min-width:901px){
+    #backdrop { display:none !important; }
+    .hamburger{ display:inline-flex; }
+  }
+
+  @media (max-width:420px){
+    .levels-grid { grid-template-columns: repeat(1, 1fr); gap:10px; }
+    .level-card { padding:10px; }
+    .content { padding:12px; }
+    .page-title { font-size:20px; }
   }
 </style>
 </head>
 <body>
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:14px">
+    <div style="display:flex;align-items:center;gap:10px">
       <button id="hamburger" class="hamburger" title="Menu" aria-label="Open menu">☰</button>
-      <div class="brand">
+      <div class="brand" aria-hidden="false">
         <img src="logo.png" alt="logo" />
         <div class="title">NeuroHue</div>
       </div>
     </div>
 
     <div class="topbar-right" style="position:relative">
-      <div class="plan-badge" id="planBadge">⭐ Premium Plan</div>
+     
 
       <div id="profileBtn" class="profile" title="Account" aria-haspopup="true" aria-expanded="false">
         <div class="avatar" id="avatar">U</div>
@@ -150,6 +197,8 @@
     </div>
   </div>
 
+  <div id="backdrop" role="presentation" aria-hidden="true"></div>
+
   <div class="page">
     <aside id="sidebar" class="sidebar" aria-hidden="true">
       <div style="display:flex;align-items:center;justify-content:space-between">
@@ -163,8 +212,6 @@
           <div style="font-size:13px;color:#6b8e90">⤴</div>
         </div>
 
-
-         <div class="nav-section">
         <div class="nav-item" id="navRoutine" role="button" tabindex="0" title="Go to Routines">
           <div>Routine</div>
           <div style="font-size:13px;color:#6b8e90">⤴</div>
@@ -205,7 +252,7 @@
           <button class="start-game" id="btnStartInner">Restart Level</button>
         </div>
         <div id="boardWrap" style="text-align:center">
-          <div id="board" class="board"></div>
+          <div id="board" class="board" aria-live="polite"></div>
           <div class="status-line" id="statusLine">Choose a level and press Start.</div>
         </div>
       </div>
@@ -217,7 +264,7 @@
   const INITIAL_REVEAL_MS = 5000; // show all cards face-up for 5 seconds
   function $(id){ return document.getElementById(id); }
 
-  // Robust stored user loader (same behavior as dashboard)
+  // Robust stored user loader
   function loadStoredUser() {
     const raw = localStorage.getItem('user') ?? sessionStorage.getItem('user')
              ?? localStorage.getItem('currentUser') ?? sessionStorage.getItem('currentUser')
@@ -242,28 +289,32 @@
   $('topUsername').textContent = storedUser.username || 'User';
   $('avatar').textContent = (storedUser.username && storedUser.username.length>0) ? storedUser.username.charAt(0).toUpperCase() : 'U';
 
-  // sidebar toggle
+  // sidebar toggle + backdrop
   const hamburger = $('hamburger');
   const sidebar = $('sidebar');
+  const backdrop = $('backdrop');
   let sidebarOpen = false;
-  hamburger.addEventListener('click', () => {
-    sidebarOpen = !sidebarOpen;
+  function setSidebar(open){
+    sidebarOpen = !!open;
     sidebar.classList.toggle('open', sidebarOpen);
     sidebar.setAttribute('aria-hidden', String(!sidebarOpen));
-  });
-  if (window.innerWidth > 900) { sidebar.classList.add('open'); sidebar.setAttribute('aria-hidden','false'); }
+    if (sidebarOpen) { backdrop.classList.add('show'); backdrop.setAttribute('aria-hidden','false'); }
+    else { backdrop.classList.remove('show'); backdrop.setAttribute('aria-hidden','true'); }
+  }
+  hamburger.addEventListener('click', ()=> setSidebar(!sidebarOpen));
+  backdrop.addEventListener('click', ()=> setSidebar(false));
+  if (window.innerWidth > 900) { setSidebar(true); } else { setSidebar(false); }
 
   // profile dropdown
   const profileBtn = $('profileBtn');
   const profileMenu = $('profileMenu');
   let profileOpen = false;
-  profileBtn.addEventListener('click', () => {
+  profileBtn.addEventListener('click', (e) => {
     profileOpen = !profileOpen;
     profileMenu.classList.toggle('open', profileOpen);
     profileMenu.setAttribute('aria-hidden', String(!profileOpen));
     profileBtn.setAttribute('aria-expanded', String(profileOpen));
   });
-
   document.addEventListener('click', (e)=> {
     if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
       profileOpen = false;
@@ -307,10 +358,10 @@
   }
   document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
 
-  // Memory Flip UI & game logic
+  // Memory Flip UI & game logic (keeps your previous logic)
   const levelImages = { 'easy': 'flip.png', 'medium': 'flip.png', 'hard': 'flip.png' };
   let levelsList = [];
-  let progressMap = {}; // progress by level
+  let progressMap = {};
   let selectedLevel = null;
   let deckInfo = null;
   let cardState = {}, firstCard = null, secondCard = null, isChecking = false, attempts = 0, matched = 0, startTime = null;
@@ -323,24 +374,20 @@
       levelsList = [{id:'easy',pairs:4},{id:'medium',pairs:6},{id:'hard',pairs:8}];
     }
 
-    // fetch user progress if user exists
     progressMap = {};
     if (storedUser && storedUser.id) {
       try {
         const res2 = await fetch(`${baseURL}/memory-flip/progress/${encodeURIComponent(storedUser.id)}`);
         if (res2.ok) {
           const json = await res2.json();
-          // expected shape: { user_id, progress: { easy: {score, completed}, medium: {...} } }
-          // normalize a few possible shapes
           const p = json.progress || json || {};
-          // coerce keys/values to expected form
           Object.keys(p).forEach(k => {
             try {
               const item = p[k] || {};
               const score = (item.score !== undefined && item.score !== null) ? Number(item.score) : (item.latest_score ? Number(item.latest_score) : null);
               const completed = (item.completed === true || String(item.completed).toLowerCase() === 'yes' || Number(score) >= 20);
               progressMap[k] = { score: score, completed: !!completed };
-            } catch(err){ /* ignore malformed item */ }
+            } catch(err){ }
           });
         }
       } catch(e){ console.warn('progress fetch failed', e); }
@@ -376,6 +423,8 @@
       card.querySelector('.start-btn').addEventListener('click', ()=> {
         startLevel(lvl);
         setTimeout(()=> { document.querySelector('.game-area')?.scrollIntoView({behavior:'smooth', block:'start'}); }, 120);
+        // close sidebar on small screens
+        if (window.innerWidth <= 900) setSidebar(false);
       });
       root.appendChild(card);
     });
@@ -403,7 +452,6 @@
       // initial reveal
       await revealAllCards(INITIAL_REVEAL_MS);
 
-      // start game
       attempts = 0; matched = 0; startTime = Date.now();
       $('statusLine').textContent = `Game started — ${deckInfo.cards.length/2} pairs. Flip two cards to match.`;
     } catch(err){
@@ -433,11 +481,6 @@
     cardState = {};
     firstCard = null; secondCard = null; isChecking = false;
     const cardCount = cards.length;
-    board.classList.remove('grid-4','grid-6','grid-8');
-    if (cardCount === 8) board.classList.add('grid-4');
-    else if (cardCount === 12) board.classList.add('grid-6');
-    else if (cardCount === 16) board.classList.add('grid-8');
-
     cards.forEach(c=>{
       cardState[c.card_id] = { matched:false, flipped:false, image:c.image };
       const card = document.createElement('div');
@@ -522,7 +565,6 @@
       const j = await res.json();
       $('statusLine').textContent = `Done — matched ${j.matched_pairs}/${j.total_pairs}. Score: ${j.score}`;
 
-      // POST progress to backend (endpoint should exist)
       if (storedUser && storedUser.id) {
         try {
           await fetch(baseURL + "/memory-flip/progress", {
@@ -559,27 +601,17 @@
   // initial load
   loadAndRenderLevels();
 
-  // ROUTINE nav: single entry that goes to routine page
+  // nav handlers
   const navDashboard = $('navDashboard');
-  if (navDashboard) {
-    navDashboard.addEventListener('click', ()=> {
-      window.location.href = 'dashboard.html';
-    });
-  }
-
-
-
-  // ROUTINE nav: single entry that goes to routine page
+  if (navDashboard) navDashboard.addEventListener('click', ()=> { window.location.href = 'dashboard.html'; });
   const navRoutine = $('navRoutine');
-  if (navRoutine) {
-    navRoutine.addEventListener('click', ()=> {
-      window.location.href = 'routine.html';
-    });
-  }
+  if (navRoutine) navRoutine.addEventListener('click', ()=> { window.location.href = 'routine.html'; });
 
-
-
-
+  // when window resizes, auto open sidebar on wide screens
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 900) setSidebar(true);
+    // else don't force close (user choice)
+  });
 </script>
 </body>
 </html>

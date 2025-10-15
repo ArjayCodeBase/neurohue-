@@ -84,6 +84,19 @@
   }
   .profile .name { font-weight:700; font-size:14px; color: #fff; }
 
+  /* language selector */
+  .lang-switch { display:flex; gap:6px; align-items:center; }
+  .lang-btn {
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.22);
+    color:#fff;
+    padding:6px 8px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .lang-btn.active { background:#fff;color:var(--teal);border-color:#fff; font-weight:700; }
+
   /* page container below topbar */
   .page {
     display:flex;
@@ -247,17 +260,23 @@
 <body>
   <div class="topbar" role="banner">
     <div style="display:flex;align-items:center;gap:14px">
-      <button id="hamburger" class="hamburger" title="Menu" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
+      <button id="hamburger" class="hamburger" title="Open menu" aria-label="Open menu" aria-controls="sidebar" aria-expanded="false">
         ☰
       </button>
       <div class="brand" aria-hidden="true">
         <img src="logo.png" alt="logo" />
-        <div class="title">NeuroHue</div>
+        <div class="title" data-i18n="brand">NeuroHue</div>
       </div>
     </div>
 
     <div class="topbar-right" style="position:relative">
-      <div class="plan-badge" id="planBadge" aria-hidden="true">⭐ Basic Plan</div>
+      <div class="plan-badge" id="planBadge" aria-hidden="true" data-i18n="planBadge">Institutional Plan</div>
+
+      <div class="lang-switch" aria-label="Language">
+        <button class="lang-btn" id="lang-en" data-lang="en">EN</button>
+        <button class="lang-btn" id="lang-tl" data-lang="tl">TL</button>
+        <button class="lang-btn" id="lang-bis" data-lang="bisaya">CEB</button>
+      </div>
 
       <div id="profileBtn" class="profile" title="Account" aria-haspopup="true" aria-expanded="false">
         <div class="avatar" id="avatar"></div>
@@ -266,9 +285,9 @@
 
       <!-- small profile dropdown -->
       <div id="profileMenu" class="profile-menu" aria-hidden="true">
-        <button id="viewProfileBtn">View Profile</button>
-        <button id="goToAssess">Initial Assessment</button>
-        <button id="logoutBtn">Log Out</button>
+        <button id="viewProfileBtn" data-i18n="viewProfile">View Profile</button>
+        <button id="goToAssess" data-i18n="goToAssess">Initial Assessment</button>
+        <button id="logoutBtn" data-i18n="logout">Log Out</button>
       </div>
     </div>
   </div>
@@ -279,61 +298,61 @@
 
     <aside id="sidebar" class="sidebar" aria-hidden="true" aria-label="Main menu">
       <div style="display:flex;align-items:center;justify-content:space-between">
-        <strong style="font-size:14px">Menu</strong>
-        <small style="color:#6b8e90">User Actions</small>
+        <strong style="font-size:14px" data-i18n="menu">Menu</strong>
+        <small style="color:#6b8e90" data-i18n="userActions">User Actions</small>
       </div>
 
       <div class="nav-section">
         <div class="nav-item" id="navRoutine" role="button" tabindex="0" title="Go to Routines">
-          <div>Routine</div>
+          <div data-i18n="routine">Routine</div>
           <div style="font-size:13px;color:#6b8e90">⤴</div>
         </div>
 
         <div class="nav-item" id="activityToggle" role="button" aria-expanded="false" tabindex="0">
-          <div>Activity</div>
+          <div data-i18n="activity">Activity</div>
           <div id="activityToggleIcon" style="font-size:13px;color:#6b8e90">▸</div>
         </div>
 
         <div id="activitySub" class="sublist" aria-hidden="true" role="menu">
-          <a class="subitem" data-activity="gross" href="gross.html" role="menuitem" tabindex="-1">Gross Motor Skills</a>
-          <a class="subitem" data-activity="fine" href="fine.html" role="menuitem" tabindex="-1">Fine Motor Skills</a>
-          <a class="subitem" data-activity="speech" href="speech.html" role="menuitem" tabindex="-1">Speech &amp; Learning</a>
-          <a class="subitem" data-activity="cognitive" href="cognitive.html" role="menuitem" tabindex="-1">Cognitive &amp; Learning</a>
-          <a class="subitem" data-activity="behavior" href="behavior.html" role="menuitem" tabindex="-1">Behavior &amp; Social Skills</a>
+          <a class="subitem" data-activity="gross" href="gross.html" role="menuitem" tabindex="-1" data-i18n="gross">Gross Motor Skills</a>
+          <a class="subitem" data-activity="fine" href="fine.html" role="menuitem" tabindex="-1" data-i18n="fine">Fine Motor Skills</a>
+          <a class="subitem" data-activity="speech" href="speech.html" role="menuitem" tabindex="-1" data-i18n="speech">Speech &amp; Learning</a>
+          <a class="subitem" data-activity="cognitive" href="cognitive.html" role="menuitem" tabindex="-1" data-i18n="cognitive">Cognitive &amp; Learning</a>
+          <a class="subitem" data-activity="behavior" href="behavior.html" role="menuitem" tabindex="-1" data-i18n="behavior">Behavior &amp; Social Skills</a>
         </div>
       </div>
 
       <hr style="margin:14px 0;border:none;border-top:1px solid #eef4f5" />
-      <div style="font-size:13px;color:#5f7a7c">Summary</div>
+      <div style="font-size:13px;color:#5f7a7c" data-i18n="summary">Summary</div>
       <div style="height:8px"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">User: 23</button>
-        <button style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer">Translation</button>
+        <button id="btnProgress" style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer" data-i18n="progress">Progress</button>
+        <button id="btnReport" style="padding:8px 12px;border-radius:8px;border:1px solid #e6eef0;background:#fff;color:#2b4d50;cursor:pointer" data-i18n="report">Report</button>
       </div>
     </aside>
 
     <main class="content" role="main" id="mainContent">
-      <div class="page-title">Dashboard</div>
+      <div class="page-title" data-i18n="dashboard">Dashboard</div>
 
       <div class="grid" id="dashboardGrid">
         <div class="card">
-          <h4>Today's Routines</h4>
-          <p id="todaysRoutines">You have 0 tasks scheduled for today.</p>
+          <h4 data-i18n="todaysRoutinesTitle">Today's Routines</h4>
+          <p id="todaysRoutines" data-i18n="youHaveTasks">You have 0 tasks scheduled for today.</p>
         </div>
 
         <div class="card">
-          <h4>Recent Activity</h4>
-          <p id="recentActivity">No recorded activity yet.</p>
+          <h4 data-i18n="recentActivityTitle">Recent Activity</h4>
+          <p id="recentActivity" data-i18n="noActivity">No recorded activity yet.</p>
         </div>
 
         <div class="card">
-          <h4>Initial Assessment</h4>
-          <p>Complete the initial progress assessment to personalize recommendations.</p>
+          <h4 data-i18n="initialAssessmentTitle">Initial Assessment</h4>
+          <p data-i18n="initialAssessmentBody">Complete the initial progress assessment to personalize recommendations.</p>
         </div>
 
         <div class="card">
-          <h4>Subscription</h4>
-          <p id="subInfo">Institutional Plan — active</p>
+          <h4 data-i18n="subscriptionTitle">Subscription</h4>
+          <p id="subInfo" data-i18n="planActive">Institutional Plan — active</p>
         </div>
       </div>
     </main>
@@ -343,7 +362,164 @@
   // small helpers
   function $(id){ return document.getElementById(id); }
 
-  // Robust user loader: checks sessionStorage/localStorage and various response shapes
+  // translations (English, Tagalog (tl), Bisaya/Cebuano)
+  const I18N = {
+    en: {
+      brand: "NeuroHue",
+      planBadge: "Institutional Plan",
+      viewProfile: "View Profile",
+      goToAssess: "Initial Assessment",
+      logout: "Log Out",
+      menu: "Menu",
+      userActions: "User Actions",
+      routine: "Routine",
+      activity: "Activity",
+      gross: "Gross Motor Skills",
+      fine: "Fine Motor Skills",
+      speech: "Speech & Learning",
+      cognitive: "Cognitive & Learning",
+      behavior: "Behavior & Social Skills",
+      summary: "Summary",
+      progress: "Progress",
+      report: "Report",
+      dashboard: "Dashboard",
+      todaysRoutinesTitle: "Today's Routines",
+      youHaveTasks: "You have {n} tasks scheduled for today.",
+      recentActivityTitle: "Recent Activity",
+      noActivity: "No recorded activity yet.",
+      initialAssessmentTitle: "Initial Assessment",
+      initialAssessmentBody: "Complete the initial progress assessment to personalize recommendations.",
+      subscriptionTitle: "Subscription",
+      planActive: "{plan} — active",
+      totalUsers: "Total users: {count}"
+    },
+    tl: { // Tagalog
+      brand: "NeuroHue",
+      planBadge: "Institutional Plan",
+      viewProfile: "Tingnan ang Profile",
+      goToAssess: "Paunang Pagsusuri",
+      logout: "Mag-log Out",
+      menu: "Menu",
+      userActions: "Mga Gawain ng User",
+      routine: "Rutin",
+      activity: "Aktibidad",
+      gross: "Gross Motor Skills",
+      fine: "Fine Motor Skills",
+      speech: "Pagsasalita at Pagkatuto",
+      cognitive: "Cognitive at Pagkatuto",
+      behavior: "Pag-uugali at Sosyal na Kasanayan",
+      summary: "Buod",
+      progress: "Progreso",
+      report: "Ulat",
+      dashboard: "Dashboard",
+      todaysRoutinesTitle: "Mga Rutin Ngayon",
+      youHaveTasks: "Mayroong {n} gawain naka-iskedyul para sa araw na ito.",
+      recentActivityTitle: "Kamakailang Aktibidad",
+      noActivity: "Walang naitalang aktibidad.",
+      initialAssessmentTitle: "Paunang Pagsusuri",
+      initialAssessmentBody: "Kumpletuhin ang paunang pagsusuri para sa mas personalisadong rekomendasyon.",
+      subscriptionTitle: "Subscription",
+      planActive: "{plan} — aktibo",
+      totalUsers: "Kabuuang gumagamit: {count}"
+    },
+    bisaya: { // Bisaya (Cebuano-like)
+      brand: "NeuroHue",
+      planBadge: "Institutional Plan",
+      viewProfile: "Tan-awon ang Profile",
+      goToAssess: "Pangunang Pagtasa",
+      logout: "Pag-log Out",
+      menu: "Menu",
+      userActions: "Mga Buhat sa User",
+      routine: "Rutin",
+      activity: "Kalihukan",
+      gross: "Gross Motor Skills",
+      fine: "Fine Motor Skills",
+      speech: "Pulong ug Pagkat-on",
+      cognitive: "Cognitive ug Pagkat-on",
+      behavior: "Pamatasan ug Sosyal nga Kahanas",
+      summary: "Sumaryo",
+      progress: "Progreso",
+      report: "Report",
+      dashboard: "Dashboard",
+      todaysRoutinesTitle: "Mga Rutin Karon",
+      youHaveTasks: "Aduna kay {n} buhat nga naka-iskedyul karong adlawa.",
+      recentActivityTitle: "Bag-ong Kalihukan",
+      noActivity: "Walay narekord nga kalihukan karon.",
+      initialAssessmentTitle: "Pangunang Pagtasa",
+      initialAssessmentBody: "Kompletuha ang pangunang pagtasa aron ma-personalize ang mga rekomendasyon.",
+      subscriptionTitle: "Subscription",
+      planActive: "{plan} — aktibo",
+      totalUsers: "Total nga users: {count}"
+    }
+  };
+
+  // returns translated string for key and optional vars
+  function t(key, vars = {}) {
+    const lang = currentLang || 'en';
+    const map = (I18N[lang] && I18N[lang][key]) ? I18N[lang][key] : (I18N.en[key] || '');
+    let out = map;
+    // substitute {name} placeholders
+    for (const k in vars) {
+      out = out.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
+    }
+    return out;
+  }
+
+  // apply translations to all elements with data-i18n
+  function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      // some elements contain dynamic placeholders or need special handling
+      if (!key) return;
+      // dynamic cases by id
+      if (el.id === 'todaysRoutines') {
+        // get number from stored or demo value; default 0
+        const n = window._demoTasksCount ?? 0;
+        el.textContent = t('youHaveTasks', { n });
+        return;
+      }
+      if (el.id === 'recentActivity') {
+        // demo activity string (static for now)
+        const demo = window._demoRecentActivity ?? t('noActivity');
+        el.textContent = demo;
+        return;
+      }
+      if (key === 'planBadge') {
+        // show plan name if stored
+        const plan = localStorage.getItem('planName') || el.textContent || 'Plan';
+        // keep plan name for planActive too
+        window._currentPlanName = plan;
+        el.textContent = t('planBadge') === 'Institutional Plan' ? plan : t('planBadge');
+        return;
+      }
+      if (key === 'planActive' || el.id === 'subInfo') {
+        const plan = window._currentPlanName || localStorage.getItem('planName') || 'Institutional Plan';
+        el.textContent = t('planActive', { plan });
+        return;
+      }
+      // default: set translated text
+      el.textContent = t(key);
+    });
+
+    // update page title (document title)
+    document.title = t('dashboard') + ' — NeuroHue';
+    // update language button active state
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      const lang = b.dataset.lang;
+      b.classList.toggle('active', lang === currentLang);
+    });
+  }
+
+  // language management
+  let currentLang = localStorage.getItem('nh_lang') || 'en';
+  function setLanguage(lang) {
+    if (!I18N[lang]) lang = 'en';
+    currentLang = lang;
+    localStorage.setItem('nh_lang', lang);
+    applyTranslations();
+  }
+
+  // small user loader
   function loadStoredUser() {
     const raw = localStorage.getItem('user') ?? sessionStorage.getItem('user')
              ?? localStorage.getItem('currentUser') ?? sessionStorage.getItem('currentUser')
@@ -410,9 +586,20 @@
     if (opts.shouldFocusToggle) hamburger.focus();
   }
 
-  // initial open state: desktop show sidebar by default, mobile hidden
+  // initial open state and initial language
   window.addEventListener('DOMContentLoaded', () => {
     setSidebar(window.innerWidth > 900);
+    // wire language buttons
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        setLanguage(b.dataset.lang);
+      });
+    });
+    // initialize language button state & translations
+    setLanguage(currentLang);
+
+    // initialize activity submenu keyboard focus state
+    document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
   });
 
   // toggle button
@@ -457,12 +644,9 @@
       'user','currentUser','current_user','username',
       'user_id','userId','userid','authToken','token',
       'planName','matchShapesCompleted','matchShapesInProgress',
-      'behaviorChecklistCompleted'
+      'behaviorChecklistCompleted','nh_lang'
     ];
-    keys.forEach(k=>{
-      try { localStorage.removeItem(k); } catch(e){}
-      try { sessionStorage.removeItem(k); } catch(e){}
-    });
+    keys.forEach(k=>{ try { localStorage.removeItem(k); } catch(e){}; try { sessionStorage.removeItem(k); } catch(e){}; });
     window.location.href = 'signin.html';
   }
   $('logoutBtn')?.addEventListener('click', doLogout);
@@ -529,19 +713,15 @@
     }
   });
 
-  // Placeholder demo loader
+  // Placeholder demo loader (use translations)
   function loadDemo() {
     const routinesToday = 3;
-    $('todaysRoutines').textContent = `You have ${routinesToday} tasks scheduled for today.`;
-    $('recentActivity').textContent = 'Matched 2 shapes • Submitted checklist';
-    $('subInfo').textContent = 'Premium Plan — active (next billing in 24 days)';
-    const storedPlan = localStorage.getItem('planName') ?? sessionStorage.getItem('planName');
-    if (storedPlan) $('planBadge').textContent = storedPlan;
+    window._demoTasksCount = routinesToday;
+    window._demoRecentActivity = t('recentActivityTitle') + ': Matched 2 shapes • Submitted checklist';
+    window._currentPlanName = localStorage.getItem('planName') || 'Institutional Plan';
+    applyTranslations();
   }
   loadDemo();
-
-  // Keep subitems unfocusable until open
-  document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
 
   // Responsive behavior when window resizes
   let resizeTimer = null;

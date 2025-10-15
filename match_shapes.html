@@ -61,10 +61,29 @@
       align-items:center;
       justify-content:center;
       user-select:none;
+      touch-action: none; /* prevent scrolling while dragging */
+      -webkit-user-drag: none;
+      position: relative;
     }
     .shape svg { width:68px; height:68px; }
     #result { margin-top:14px; font-weight:bold; text-align:center; }
     .countdown { margin-top:8px; color:#333; font-size:0.95rem; }
+
+    /* floating clone used during pointer drag */
+    .dragging-clone {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      will-change: transform;
+      opacity: 0.95;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      background: white;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
   </style>
 </head>
 <body>
@@ -164,6 +183,47 @@
       return wrapper;
     }
 
+    // unified drop/match handling used by both drag-drop and pointer drop
+    function handleMatchOnOutline(outlineEl, payload) {
+      if (!outlineEl || outlineEl.dataset.placed === "true") return;
+
+      outlineEl.dataset.placed = "true";
+      droppedCount++;
+
+      const expected = outlineEl.dataset.shape;
+      const marker = outlineEl.querySelector(".marker");
+
+      if (payload.shape === expected) {
+        matchedCount++;
+        marker.textContent = "✓";
+        marker.style.color = "green";
+      } else {
+        marker.textContent = "✗";
+        marker.style.color = "red";
+      }
+
+      if (payload.id) {
+        const draggedEl = document.getElementById(payload.id);
+        if (draggedEl && draggedEl.parentElement) draggedEl.parentElement.removeChild(draggedEl);
+      } else {
+        const candidate = document.querySelector(`#shapes .shape[data-shape="${payload.shape}"]`);
+        if (candidate && candidate.parentElement) candidate.parentElement.removeChild(candidate);
+      }
+
+      if (droppedCount >= totalShapes) {
+        setTimeout(submitResults, 700);
+      }
+    }
+
+    function handleDropOnOutline(e) {
+      e.preventDefault();
+      let payload;
+      try { payload = JSON.parse(e.dataTransfer.getData("text/plain")); }
+      catch { payload = { shape: e.dataTransfer.getData("shape"), id: null }; }
+      handleMatchOnOutline(e.currentTarget, payload);
+    }
+
+    // create draggable element (adds pointer drag logic)
     function createDraggableElement(shape, idx) {
       const el = document.createElement("div");
       el.className = "shape";
@@ -172,9 +232,89 @@
       el.dataset.index = String(idx);
       el.id = `draggable-${shape}-${idx}`;
       el.innerHTML = svgFilled(shape);
+
+      // keep native drag for mouse
       el.addEventListener("dragstart", (ev) => {
-        ev.dataTransfer.setData("text/plain", JSON.stringify({ shape: ev.currentTarget.dataset.shape, id: ev.currentTarget.id }));
+        try {
+          ev.dataTransfer.setData("text/plain", JSON.stringify({ shape: ev.currentTarget.dataset.shape, id: ev.currentTarget.id }));
+        } catch (err) { /* ignore */ }
       });
+
+      // pointer-based dragging (works for touch & mouse)
+      el.style.touchAction = "none";
+
+      let pointerState = null;
+
+      function startPointerDrag(ev) {
+        // only primary pointer
+        if (ev.pointerType && ev.isPrimary === false) return;
+        ev.preventDefault();
+
+        // create a floating clone
+        const clone = el.cloneNode(true);
+        clone.classList.add("dragging-clone");
+        clone.style.width = `${el.offsetWidth}px`;
+        clone.style.height = `${el.offsetHeight}px`;
+        document.body.appendChild(clone);
+
+        pointerState = {
+          clone,
+          shape: el.dataset.shape,
+          origId: el.id,
+          pointerId: ev.pointerId
+        };
+
+        moveClone(ev.clientX, ev.clientY);
+
+        try { ev.target.setPointerCapture(ev.pointerId); } catch(e){}
+
+        window.addEventListener("pointermove", pointerMoveHandler);
+        window.addEventListener("pointerup", pointerEndHandler);
+        window.addEventListener("pointercancel", pointerEndHandler);
+      }
+
+      function moveClone(clientX, clientY) {
+        if (!pointerState) return;
+        pointerState.clone.style.left = `${clientX}px`;
+        pointerState.clone.style.top = `${clientY}px`;
+        pointerState.clone.style.transform = `translate(-50%,-50%)`;
+      }
+
+      function pointerMoveHandler(ev) {
+        if (!pointerState) return;
+        ev.preventDefault();
+        moveClone(ev.clientX, ev.clientY);
+      }
+
+      function pointerEndHandler(ev) {
+        if (!pointerState) return;
+        // element under pointer
+        const x = ev.clientX;
+        const y = ev.clientY;
+        const elUnder = document.elementFromPoint(x, y);
+        let outlineEl = null;
+        if (elUnder) outlineEl = elUnder.closest('.outline');
+
+        const payload = { shape: pointerState.shape, id: pointerState.origId };
+
+        if (outlineEl) {
+          handleMatchOnOutline(outlineEl, payload);
+        } else {
+          // no target - nothing to do
+        }
+
+        // cleanup
+        try {
+          window.removeEventListener("pointermove", pointerMoveHandler);
+          window.removeEventListener("pointerup", pointerEndHandler);
+          window.removeEventListener("pointercancel", pointerEndHandler);
+        } catch(e){}
+        if (pointerState.clone && pointerState.clone.parentElement) pointerState.clone.parentElement.removeChild(pointerState.clone);
+        pointerState = null;
+      }
+
+      el.addEventListener("pointerdown", startPointerDrag);
+
       return el;
     }
 
@@ -215,51 +355,10 @@
       document.getElementById("result").textContent = `Playing level ${data.level} — match ${totalShapes} shapes.`;
     }
 
-    function handleDropOnOutline(e) {
-      e.preventDefault();
-      const outlineEl = e.currentTarget;
-      if (outlineEl.dataset.placed === "true") return;
-
-      let payload;
-      try { payload = JSON.parse(e.dataTransfer.getData("text/plain")); }
-      catch { payload = { shape: e.dataTransfer.getData("shape"), id: null }; }
-
-      const draggedShape = payload.shape;
-      const draggedId = payload.id;
-
-      outlineEl.dataset.placed = "true";
-      droppedCount++;
-
-      const expected = outlineEl.dataset.shape;
-      const marker = outlineEl.querySelector(".marker");
-
-      if (draggedShape === expected) {
-        matchedCount++;
-        marker.textContent = "✓";
-        marker.style.color = "green";
-      } else {
-        marker.textContent = "✗";
-        marker.style.color = "red";
-      }
-
-      if (draggedId) {
-        const draggedEl = document.getElementById(draggedId);
-        if (draggedEl && draggedEl.parentElement) draggedEl.parentElement.removeChild(draggedEl);
-      } else {
-        const candidate = document.querySelector(`#shapes .shape[data-shape="${draggedShape}"]`);
-        if (candidate && candidate.parentElement) candidate.parentElement.removeChild(candidate);
-      }
-
-      if (droppedCount >= totalShapes) {
-        setTimeout(submitResults, 700);
-      }
-    }
-
     async function submitResults() {
       totalMatchedOverall += matchedCount;
       totalShapesOverall += totalShapes;
 
-      // Build payload. Note: server should use auth token to derive user for security.
       const payload = { user_id: userId, level: currentLevel, matched_shapes: matchedCount, total_shapes: totalShapes };
 
       try {
@@ -281,13 +380,11 @@
         const result = await resp.json();
         document.getElementById("result").textContent = `Level ${currentLevel} result: ${result.message} Score: ${result.score}%`;
 
-        // if backend explicitly says there's a next level use it; if next_level is null/undefined -> finalize
         const hasNext = (typeof result.next_level !== "undefined" && result.next_level !== null);
 
         let wait = 5;
         const countdownEl = document.getElementById("countdown");
         if (!hasNext) {
-          // No next level -> show totals then redirect to home.html after short pause
           countdownEl.textContent = `Returning to Home in ${wait} s...`;
           const timer = setInterval(() => {
             wait--;
@@ -301,7 +398,6 @@
           return;
         }
 
-        // there is a next level -> show countdown then load next
         const nextAvailable = result.next_level;
         countdownEl.textContent = `Next level will start in ${wait} s...`;
         const timer2 = setInterval(() => {
@@ -331,7 +427,6 @@
         res.innerHTML = `All levels complete.<br/>Total matched: ${totalMatchedOverall} / ${totalShapesOverall} — <strong>Total score: ${pct}%</strong><br/>Returning to Home...`;
       }
 
-      // mark complete locally (home.html reads this)
       try {
         localStorage.setItem("matchShapesCompleted", "true");
         localStorage.removeItem("matchShapesInProgress");
@@ -339,7 +434,6 @@
         console.warn("localStorage unavailable:", e);
       }
 
-      // short delay so user sees final score, then redirect to home.html
       setTimeout(() => {
         window.location.href = "home.html";
       }, 1500);
@@ -347,9 +441,7 @@
 
     function ensureLoggedIn() {
       if (!userId) {
-        // Optionally mark in-progress state then redirect to signin
         try { localStorage.setItem('matchShapesInProgress', 'true'); } catch(e) {}
-        // Use a non-blocking inline message instead of alert for nicer UX
         const res = document.getElementById('result');
         if (res) res.textContent = 'You must be logged in to play. Redirecting to signin...';
         setTimeout(() => {
@@ -360,10 +452,8 @@
       return true;
     }
 
-    // When DOM is ready, update UI and start the game (if logged in)
     document.addEventListener('DOMContentLoaded', () => {
       const username = getStoredItem('username') || getStoredItem('user') ? (function(){
-        // if full user object stored as JSON, attempt to extract display name
         const uRaw = getStoredItem('user');
         if (uRaw) {
           try {
@@ -379,10 +469,8 @@
 
       if (!ensureLoggedIn()) return;
 
-      // Start automatically
       loadLevel(currentLevel);
     });
-
   </script>
 </body>
 </html>

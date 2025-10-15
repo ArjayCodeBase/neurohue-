@@ -1597,5 +1597,3 @@ def serve_root_assets(filename: str):
     static_file = STATIC_DIR / filename
     if static_file.exists() and static_file.is_file():
         return FileResponse(str(static_file))
-
-    raise HTTPException(status_code=404, detail=f"{filename} not found in project root or static/")

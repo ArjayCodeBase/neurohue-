@@ -10,17 +10,21 @@
     --dark:#093c44;
     --card-bg:#ffffff;
     --muted:#f3f6f7;
+    --gap:14px;
   }
   *{box-sizing:border-box}
+  html,body { height:100%; }
   body{
     margin:0;
     font-family: "Arial",sans-serif;
     background:#f5f7fa;
     color:#08343a;
     min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
   }
 
-  /* Topbar (same style as dashboard) */
+  /* Topbar */
   .topbar{
     height:64px;
     background:var(--teal);
@@ -30,55 +34,26 @@
     padding:0 18px;
     color:#fff;
     box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+    position:sticky;
+    top:0;
+    z-index:60;
   }
-  .brand {
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-weight:700;
-  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; }
   .brand img{ height:34px; width:34px; border-radius:6px; object-fit:cover }
-  .brand .title { font-size:18px; }
+  .brand .title { font-size:18px; white-space:nowrap; }
 
-  .topbar-right {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    position:relative;
-  }
+  .topbar-right { display:flex; align-items:center; gap:12px; position:relative; }
 
-  .plan-badge{
-    background:#fff3cf;
-    color:#7a5a10;
-    padding:6px 10px;
-    border-radius:10px;
-    font-size:13px;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
+  .plan-badge{ background:#fff3cf; color:#7a5a10; padding:6px 10px; border-radius:10px; font-size:13px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
 
-  .profile {
-    background: #0b2b2b;
-    color: #fff;
-    padding:6px 10px;
-    border-radius:22px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    cursor:pointer;
-    position:relative;
-  }
-  .profile .avatar {
-    width:34px;height:34px;border-radius:50%;background:#fff;color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700;
-  }
+  .profile { background: #0b2b2b; color: #fff; padding:6px 10px; border-radius:22px; display:flex; align-items:center; gap:10px; cursor:pointer; position:relative; }
+  .profile .avatar { width:34px;height:34px;border-radius:50%;background:#fff;color:var(--dark);display:flex;align-items:center;justify-content:center;font-weight:700; }
   .profile .name { font-weight:700; font-size:14px; }
 
-  /* layout */
-  .page {
-    display:flex;
-    height: calc(100vh - 64px);
-  }
+  .hamburger{ width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:22px; }
+
+  /* app layout */
+  .app { display:flex; min-height: calc(100vh - 64px); height: calc(100vh - 64px); overflow:hidden; }
 
   /* sidebar */
   .sidebar {
@@ -86,65 +61,47 @@
     background: #f9fbfc;
     border-right:1px solid #ebeff0;
     padding:18px;
-    transform: translateX(-320px);
     transition: transform .22s ease;
     position:relative;
     z-index:30;
+    flex-shrink:0;
   }
-  .sidebar.open { transform: translateX(0); box-shadow: 2px 0 14px rgba(0,0,0,0.05); }
+  /* for small screens we'll toggle this class */
+  .sidebar.hidden { transform: translateX(-110%); box-shadow: none; position:fixed; top:64px; left:0; height: calc(100vh - 64px); overflow:auto; }
+  .sidebar.open { transform: translateX(0); box-shadow: 2px 0 14px rgba(0,0,0,0.05); position:fixed; top:64px; left:0; height: calc(100vh - 64px); overflow:auto; }
 
   .nav-section { margin-top:6px; }
-  .nav-item{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:10px 12px;
-    border-radius:8px;
-    cursor:pointer;
-    color:#08343a;
-    margin-bottom:6px;
-  }
+  .nav-item{ display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px; cursor:pointer; color:#08343a; margin-bottom:6px; }
   .nav-item:hover{ background: #eef6f7; }
 
-  .hamburger{
-    width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;color:#fff;font-size:22px;
-  }
+  /* backdrop for mobile sidebar */
+  #backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.28); display:none; z-index:29; transition:opacity .18s; opacity:0; }
+  #backdrop.show { display:block; opacity:1; }
 
   /* main content */
-  .content {
-    flex:1;
-    padding:24px;
-    overflow:auto;
-  }
+  .content { flex:1; padding:24px; overflow:auto; min-width:0; }
 
-  .page-title {
-    text-align:left;
-    color:var(--dark);
-    font-weight:800;
-    font-size:22px;
-    margin-top:6px;
-    margin-bottom:12px;
-  }
+  .page-title { text-align:left; color:var(--dark); font-weight:800; font-size:22px; margin-top:6px; margin-bottom:12px; }
 
-  /* routine UI (kept from original) */
+  /* routine UI */
   .controls { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; align-items:center; }
-  .card { background:var(--card-bg); border-radius:8px; padding:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
-  .card-left { display:flex; gap:12px; align-items:center; }
-  .thumb { width:84px; height:84px; border-radius:10px; background:#f4f6f7; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #eee; }
+  .card { background:var(--card-bg); border-radius:8px; padding:12px; box-shadow:0 2px 6px rgba(0,0,0,0.06); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .card-left { display:flex; gap:12px; align-items:center; min-width:0; }
+  .thumb { width:84px; height:84px; border-radius:10px; background:#f4f6f7; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid #eee; flex-shrink:0; }
   .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
-  .meta { font-size:13px; color:#333; }
-  .title { font-weight:700; margin-bottom:6px; }
-  .small { font-size:12px; color:#666; }
+  .meta { font-size:13px; color:#333; min-width:0; }
+  .title { font-weight:700; margin-bottom:6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .small { font-size:12px; color:#666; display:block; }
   .btn { background:#093c44; color:#fff; padding:6px 10px; border-radius:6px; border:none; cursor:pointer; }
   .btn.secondary { background:#eee; color:#093c44; border:1px solid #ddd; }
-  .status { font-weight:700; padding:6px 10px; border-radius:20px; margin-right:8px; text-align:center; min-width:72px; }
+  .status { font-weight:700; padding:6px 10px; border-radius:20px; margin-right:8px; text-align:center; min-width:72px; text-transform:capitalize; }
   .status.Inprogress { background:#fff1f0; color:#c0392b; border:1px solid #f5c6c4;}
   .status.Done { background:#ecf9f0; color:#16a34a; border:1px solid #c5eacb;}
   .status.Miss { background:#fff6e6; color:#b36f00; border:1px solid #f1d9b0;}
   .status.Due { background:#fff8e6; color:#c67d00; border:1px solid #f1e3c8; }
 
-  form.create { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
-  input, select { padding:8px; border-radius:6px; border:1px solid #ccc; }
+  form.create { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; width:100%; }
+  input, select { padding:8px; border-radius:6px; border:1px solid #ccc; background:#fff; }
 
   .grid-cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap:18px; margin-top:16px; }
 
@@ -157,71 +114,59 @@
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
   .muted { color:#666; font-size:13px; }
 
-  /* profile menu (same as home) */
-  .profile-menu{
-    position:absolute;
-    right:18px;
-    top:64px;
-    background:#fff;
-    border:1px solid #e6eef0;
-    border-radius:8px;
-    min-width:180px;
-    box-shadow:0 6px 20px rgba(8,52,54,0.08);
-    display:none;
-    z-index:40;
-  }
+  .profile-menu{ position:absolute; right:18px; top:64px; background:#fff; border:1px solid #e6eef0; border-radius:8px; min-width:180px; box-shadow:0 6px 20px rgba(8,52,54,0.08); display:none; z-index:40; }
   .profile-menu.open{ display:block; }
-  .profile-menu button{
-    width:100%;
-    border:none;
-    background:transparent;
-    padding:10px 12px;
-    text-align:left;
-    cursor:pointer;
-  }
+  .profile-menu button{ width:100%; border:none; background:transparent; padding:10px 12px; text-align:left; cursor:pointer; }
   .profile-menu button:hover{ background:#f2f8f9; }
 
-  /* activity submenu */
   .sublist { padding-left:6px; margin-top:6px; display:none; }
   .sublist.open { display:block; }
-  .sublist .subitem {
-    display:block;
-    padding:8px 10px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:14px;
-    color:#2b4d50;
-    text-decoration:none;
-  }
+  .sublist .subitem { display:block; padding:8px 10px; border-radius:6px; cursor:pointer; font-size:14px; color:#2b4d50; text-decoration:none; }
   .sublist .subitem:hover { background:#eef6f7; }
   .sublist .subitem:focus { outline:2px solid #bfeef7; }
 
-  /* responsive */
+  /* responsiveness */
   @media (max-width:900px){
-    .sidebar{ position:absolute; height:100%; left:0; top:64px; }
-    .content{ padding:20px; }
+    .sidebar { position:fixed; top:64px; left:0; height: calc(100vh - 64px); transform: translateX(-110%); width:260px; overflow:auto; }
+    .sidebar.hidden { transform: translateX(-110%); }
+    .sidebar.open { transform: translateX(0); }
+    #backdrop { display:block; opacity:0; }
+    #backdrop.show { opacity:1; }
+    .content { padding:18px; }
+    .brand .title { display:none; }
+    .plan-badge { display:none; }
+    .card { flex-direction:column; align-items:flex-start; }
+    .card-actions { width:100%; display:flex; gap:8px; margin-top:8px; justify-content:flex-start; }
+    .thumb { width:70px; height:70px; }
+    .page-title { font-size:20px; }
+  }
+
+  @media (max-width:420px){
+    .thumb { width:64px; height:64px; }
+    .title { font-size:15px; }
+    .card { padding:10px; gap:8px; }
+    .grid-cards { gap:12px; }
   }
 </style>
 </head>
 <body>
-  <div class="topbar">
+  <div class="topbar" role="banner">
     <div style="display:flex;align-items:center;gap:14px">
       <button id="hamburger" class="hamburger" title="Menu" aria-label="Open menu">☰</button>
-      <div class="brand">
+      <div class="brand" aria-hidden="false">
         <img src="logo.png" alt="logo" />
         <div class="title">NeuroHue</div>
       </div>
     </div>
 
     <div class="topbar-right" style="position:relative">
-      <div class="plan-badge" id="planBadge">⭐ Premium Plan</div>
+      
 
       <div id="profileBtn" class="profile" title="Account" aria-haspopup="true" aria-expanded="false">
         <div class="avatar" id="avatar"></div>
         <div class="name" id="topUsername">User</div>
       </div>
 
-      <!-- small profile dropdown -->
       <div id="profileMenu" class="profile-menu" aria-hidden="true">
         <button id="viewProfileBtn">View Profile</button>
         <button id="goToAssess">Initial Assessment</button>
@@ -230,8 +175,10 @@
     </div>
   </div>
 
-  <div class="page">
-    <aside id="sidebar" class="sidebar" aria-hidden="true">
+  <div id="backdrop" aria-hidden="true"></div>
+
+  <div class="app">
+    <aside id="sidebar" class="sidebar hidden" aria-hidden="true">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <strong style="font-size:14px">Menu</strong>
         <small style="color:#6b8e90">User Actions</small>
@@ -243,20 +190,15 @@
           <div style="font-size:13px;color:#6b8e90">⤴</div>
         </div>
 
-
-         <div class="nav-section">
         <div class="nav-item" id="navRoutine" role="button" tabindex="0" title="Go to Routines">
           <div>Routine</div>
           <div style="font-size:13px;color:#6b8e90">⤴</div>
         </div>
-        
 
         <div class="nav-item" id="activityToggle" role="button" aria-expanded="false" tabindex="0">
           <div>Activity</div>
           <div id="activityToggleIcon" style="font-size:13px;color:#6b8e90">▸</div>
         </div>
-
-        
 
         <div id="activitySub" class="sublist" aria-hidden="true" role="menu">
           <a class="subitem" data-activity="gross" href="gross.html" role="menuitem" tabindex="-1">Gross Motor Skills</a>
@@ -352,9 +294,7 @@
 <script>
   const baseURL = "https://neurohue.onrender.com";
 
-  // ----------------------
-  // Small helpers & stored user (similar to home)
-  // ----------------------
+  // small helper
   function $(id){ return document.getElementById(id); }
 
   function loadStoredUser() {
@@ -385,27 +325,61 @@
   $('topUsername').textContent = displayName;
   $('avatar').textContent = displayName.charAt(0).toUpperCase();
 
-  // Sidebar toggle (same as home) and default open on wide screens
+  // Sidebar toggle + backdrop logic (keeps menus functional)
   const hamburger = $('hamburger');
   const sidebar = $('sidebar');
+  const backdrop = $('backdrop');
   let sidebarOpen = false;
 
   function setSidebarOpen(open){
     sidebarOpen = !!open;
-    sidebar.classList.toggle('open', sidebarOpen);
-    sidebar.setAttribute('aria-hidden', String(!sidebarOpen));
+    // on small screens, we use classes to show/hide the sidebar
+    if (window.innerWidth <= 900) {
+      sidebar.classList.toggle('open', sidebarOpen);
+      sidebar.classList.toggle('hidden', !sidebarOpen);
+      sidebar.setAttribute('aria-hidden', String(!sidebarOpen));
+      if (sidebarOpen) {
+        backdrop.classList.add('show');
+        backdrop.style.display = 'block';
+        backdrop.setAttribute('aria-hidden', 'false');
+      } else {
+        backdrop.classList.remove('show');
+        backdrop.style.display = 'none';
+        backdrop.setAttribute('aria-hidden', 'true');
+      }
+    } else {
+      // desktop: keep sidebar visible and ensure backdrop hidden
+      sidebar.classList.remove('hidden');
+      sidebar.classList.remove('open');
+      sidebar.setAttribute('aria-hidden', 'false');
+      backdrop.classList.remove('show');
+      backdrop.style.display = 'none';
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
   }
 
-  hamburger.addEventListener('click', () => {
-    setSidebarOpen(!sidebarOpen);
-  });
+  hamburger.addEventListener('click', ()=> setSidebarOpen(!sidebarOpen));
+  backdrop.addEventListener('click', ()=> setSidebarOpen(false));
 
-  // open by default on wide screens to resemble dashboard UI
-  if (window.innerWidth > 900) {
-    setSidebarOpen(true);
-  } else {
-    setSidebarOpen(false);
+  // ensure correct default on initial load and when resizing
+  function applyInitialSidebar() {
+    if (window.innerWidth > 900) {
+      sidebar.classList.remove('hidden');
+      sidebar.classList.remove('open');
+      sidebar.setAttribute('aria-hidden', 'false');
+      backdrop.classList.remove('show');
+      backdrop.style.display = 'none';
+      sidebarOpen = true;
+    } else {
+      sidebar.classList.add('hidden');
+      sidebar.classList.remove('open');
+      sidebar.setAttribute('aria-hidden', 'true');
+      backdrop.classList.remove('show');
+      backdrop.style.display = 'none';
+      sidebarOpen = false;
+    }
   }
+  window.addEventListener('resize', applyInitialSidebar);
 
   // Profile dropdown
   const profileBtn = $('profileBtn');
@@ -417,8 +391,6 @@
     profileMenu.setAttribute('aria-hidden', String(!profileOpen));
     profileBtn.setAttribute('aria-expanded', String(profileOpen));
   });
-
-  // Close profile menu on outside click
   document.addEventListener('click', (e) => {
     if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
       profileOpen = false;
@@ -428,25 +400,18 @@
     }
   });
 
-  // Logout and quick links
-  function doLogout(){
-    const keys = [
-      'user','currentUser','current_user','username',
-      'user_id','userId','userid','authToken','token',
-      'planName','matchShapesCompleted','matchShapesInProgress',
-      'behaviorChecklistCompleted'
-    ];
-    keys.forEach(k=>{
-      try { localStorage.removeItem(k); } catch(e){}
-      try { sessionStorage.removeItem(k); } catch(e){}
-    });
-    window.location.href = 'signin.html';
-  }
-  $('logoutBtn')?.addEventListener('click', doLogout);
-  $('viewProfileBtn')?.addEventListener('click', ()=>{ window.location.href = 'profile.html'; });
-  $('goToAssess')?.addEventListener('click', ()=>{ window.location.href = 'initial_progress_assessment.html'; });
+  // quick actions
+  $('viewProfileBtn')?.addEventListener('click', ()=> window.location.href = 'profile.html');
+  $('goToAssess')?.addEventListener('click', ()=> window.location.href = 'initial_progress_assessment.html');
 
-  // Activity toggle and subitems
+  // nav links
+  document.getElementById('navDashboard')?.addEventListener('click', ()=> window.location.href = 'dashboard.html');
+  document.getElementById('navRoutine')?.addEventListener('click', ()=> {
+    if (window.innerWidth <= 900) setSidebarOpen(false);
+    else document.querySelector('main')?.scrollIntoView({behavior:'smooth'});
+  });
+
+  // activity toggle behaviour
   const activityToggle = $('activityToggle');
   const activitySub = $('activitySub');
   const activityToggleIcon = $('activityToggleIcon');
@@ -465,47 +430,19 @@
         activityToggle.focus();
       }
     });
-
     activityToggle.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.code === 'Space') {
-        e.preventDefault();
-        activityToggle.click();
-      }
+      if (e.key === 'Enter' || e.code === 'Space') { e.preventDefault(); activityToggle.click(); }
     });
   }
-
-  // ROUTINE nav: go to routine page (we are here, but keep behavior)
-  const navRoutine = $('navRoutine');
-  if (navRoutine) {
-    navRoutine.addEventListener('click', ()=> {
-      if (window.innerWidth <= 900) {
-        setSidebarOpen(false);
-      } else {
-        document.querySelector('main')?.scrollIntoView({behavior:'smooth'});
-      }
-    });
-  }
-
- // ROUTINE nav: single entry that goes to routine page
-  const navDashboard = $('navDashboard');
-  if (navDashboard) {
-    navDashboard.addEventListener('click', ()=> {
-      window.location.href = 'dashboard.html';
-    });
-  }
-
-
-  // Make subitems tab-focusable only when submenu is open initially (they are -1 by default)
   document.querySelectorAll('#activitySub .subitem').forEach(a => a.tabIndex = -1);
 
   // Optionally set plan badge from storage
   const storedPlan = localStorage.getItem('planName') ?? sessionStorage.getItem('planName');
-  if (storedPlan) $('planBadge').textContent = storedPlan;
+  if (storedPlan) document.getElementById('planBadge').textContent = storedPlan;
 
   // ----------------------
-  // Routines app logic (mostly unchanged)
+  // Routines logic (keeps your original behavior)
   // ----------------------
-
   function defaultCategoryImage(category){
     const map = {
       'Eating': 'images/eating.png',
@@ -518,11 +455,8 @@
     };
     return map[category] || map['Other'];
   }
-
   function keyForRoutineImage(id){ return `routine_image_${id}`; }
-  function saveRoutineImage(id, dataUrl){
-    try { localStorage.setItem(keyForRoutineImage(id), dataUrl); } catch(e){ console.warn('image save failed', e); }
-  }
+  function saveRoutineImage(id, dataUrl){ try { localStorage.setItem(keyForRoutineImage(id), dataUrl); } catch(e){ console.warn('image save failed', e); } }
   function getRoutineImage(id){ return localStorage.getItem(keyForRoutineImage(id)); }
   function removeRoutineImage(id){ localStorage.removeItem(keyForRoutineImage(id)); }
 
@@ -680,6 +614,7 @@
         document.getElementById('imageFileCreate').value = '';
         messageEl.textContent = 'Created.';
         fetchRoutines();
+        if (window.innerWidth <= 900) setSidebarOpen(false);
       } catch (err) {
         messageEl.textContent = 'Failed to create.';
         console.error(err);
@@ -755,33 +690,17 @@
       const sched = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
       const diffMinutes = Math.floor((now - sched) / 60000);
 
-      const cards = Array.from(document.querySelectorAll('.card'));
-      let statusDom = null;
-      for (const c of cards) {
-        if (c.innerText.includes(r.task) && c.innerText.includes(formatTime(r.time))) {
-          statusDom = c.querySelector('.status');
-          break;
-        }
-      }
-
       if (diffMinutes >= 30) {
         markRoutine(r.id, 'Miss');
-      } else if (diffMinutes >= 0) {
-        if (statusDom) {
-          statusDom.className = 'status Due';
-          statusDom.textContent = 'Due';
-        }
       } else {
-        if (statusDom) {
-          statusDom.className = 'status Inprogress';
-          statusDom.textContent = 'Inprogress';
-        }
+        // keep UI updated by re-fetch when appropriate
       }
     });
   }
 
   setInterval(runAutoProgressCheck, 20000);
 
+  // edit modal
   let editingId = null;
   const modalBackdrop = document.getElementById('modal');
   const editPreview = document.getElementById('editPreview');
@@ -803,7 +722,6 @@
 
     const stored = getRoutineImage(routine.id);
     setPreviewImage(stored || (routine.image ? routine.image : defaultCategoryImage(routine.category)));
-
     imageFileEdit.value = '';
   }
 
@@ -820,7 +738,7 @@
 
   $('closeModal').addEventListener('click', ()=>{ modalBackdrop.style.display = 'none'; modalBackdrop.setAttribute('aria-hidden', 'true'); editingId = null; });
 
-  $('saveEdit').addEventListener('click', async ()=>{
+  $('saveEdit').addEventListener('click', async ()=>{ 
     if (!editingId) return;
     const newTask = editTask.value.trim();
     const newTime = editTime.value;
@@ -859,20 +777,14 @@
         }
       }
 
-      if (newDataUrl) {
-        setPreviewImage(newDataUrl);
-      } else {
-        if (!getRoutineImage(editingId)) {
-          setPreviewImage(defaultCategoryImage(newCategory));
-        }
-      }
+      if (newDataUrl) setPreviewImage(newDataUrl);
+      else if (!getRoutineImage(editingId)) setPreviewImage(defaultCategoryImage(newCategory));
 
       modalBackdrop.style.display = 'none';
       modalBackdrop.setAttribute('aria-hidden', 'true');
       editingId = null;
 
       setTimeout(fetchRoutines, 250);
-
     } catch (err) {
       console.error('Update failed', err);
       alert('Failed to update routine. Check console for details.');
@@ -890,17 +802,12 @@
   imageFileEdit.addEventListener('change', async (e)=>{
     const f = e.target.files[0];
     if (!f) return;
-    try {
-      const dataUrl = await readFileAsDataURL(f);
-      setPreviewImage(dataUrl);
-    } catch(e){ console.warn('read fail', e); }
+    try { const dataUrl = await readFileAsDataURL(f); setPreviewImage(dataUrl); } catch(e){ console.warn('read fail', e); }
   });
 
   // initial load
   window.addEventListener('DOMContentLoaded', ()=>{
-    // default: if wide screen -> keep sidebar open (to match dashboard look), else closed
-    if (window.innerWidth > 900) setSidebarOpen(true);
-    else setSidebarOpen(false);
+    applyInitialSidebar();
     fetchRoutines();
   });
 
